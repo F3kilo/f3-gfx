@@ -1,6 +1,7 @@
-use crate::back::{Backend, LoadResult, TexId};
-use crate::tex::Tex;
-use crate::tex_waiter::{TexUnloader, TexWaiter};
+use crate::back::{Backend, TexData, TexId, WriteError};
+use crate::read_tex;
+use crate::read_tex::ReadError;
+use crate::tex_waiter::{TexRemover, TexWaiter};
 use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, Sender, TryRecvError};
 use std::sync::{mpsc, Arc};
@@ -36,16 +37,17 @@ impl Link {
 
     pub fn load_tex(&self, path: PathBuf) -> TexWaiter {
         let (tx, rx) = mpsc::channel();
-
-        TexWaiter::new(rx, TexUnloader::new(self.task_tx.clone()))
+        let _ = self.task_tx.send(LoadTexTask::new(path, tx).into());
+        TexWaiter::new(rx, TexRemover::new(self.task_tx.clone()))
     }
 }
 
 pub enum Task {
     ReplaceBack(Box<dyn Backend>),
     LoadTex(LoadTexTask),
-    UnloadTex(TexId),
-    LaterUnloadTex(Receiver<LoadResult<TexId>>),
+    WriteTexTask(WriteTexTask),
+    RemoveTex(TexId),
+    RemoveTexLater(Receiver<LoadResult<TexId>>),
 }
 
 struct Tasker {
@@ -79,8 +81,9 @@ impl Tasker {
         match task {
             Task::ReplaceBack(b) => self.replace_back(b),
             Task::LoadTex(task) => self.load_tex(task),
-            Task::UnloadTex(id) => self.back.unload_tex(id),
-            Task::LaterUnloadTex(r) => self.unload_tex_later(r),
+            Task::RemoveTex(id) => self.back.remove_tex(id),
+            Task::RemoveTexLater(r) => self.remove_tex_later(r),
+            Task::WriteTexTask(t) => self.back.write_tex(t.data, t.result_sender),
         }
     }
 
@@ -89,21 +92,33 @@ impl Tasker {
     }
 
     fn load_tex(&mut self, task: LoadTexTask) {
-        todo!()
+        let (path, result_sender): (PathBuf, Sender<LoadResult<TexId>>) = task.into();
+        let task_sender = self.task_tx.clone();
+        self.rt.spawn(async move {
+            let tex_data = read_tex::read(path).await;
+            match tex_data {
+                Ok(d) => {
+                    let _ = task_sender.send(WriteTexTask::new(d, result_sender).into());
+                }
+                Err(e) => {
+                    let _ = result_sender.send(Err(e.into()));
+                }
+            }
+        });
     }
 
-    fn unload_tex_later(&mut self, r: Receiver<LoadResult<TexId>>) {
+    fn remove_tex_later(&mut self, r: Receiver<LoadResult<TexId>>) {
         let task_sender = self.task_tx.clone();
         self.rt.spawn(async move {
             let result = r.try_recv();
             if let Ok(Ok(id)) = result {
-                let _ = task_sender.send(Task::UnloadTex(id));
+                let _ = task_sender.send(Task::RemoveTex(id));
                 return;
             }
 
             if let Err(TryRecvError::Empty) = result {
                 tokio::time::delay_for(Duration::from_secs(1)).await;
-                let _ = task_sender.send(Task::LaterUnloadTex(r));
+                let _ = task_sender.send(Task::RemoveTexLater(r));
                 return;
             }
         });
@@ -112,5 +127,65 @@ impl Tasker {
 
 pub struct LoadTexTask {
     path: PathBuf,
-    result_sender: Sender<LoadResult<Tex>>,
+    result_sender: Sender<LoadResult<TexId>>,
+}
+
+impl LoadTexTask {
+    pub fn new(path: PathBuf, result_sender: Sender<LoadResult<TexId>>) -> Self {
+        Self {
+            path,
+            result_sender,
+        }
+    }
+}
+
+impl From<LoadTexTask> for Task {
+    fn from(t: LoadTexTask) -> Self {
+        Task::LoadTex(t)
+    }
+}
+
+impl From<LoadTexTask> for (PathBuf, Sender<LoadResult<TexId>>) {
+    fn from(t: LoadTexTask) -> Self {
+        (t.path, t.result_sender)
+    }
+}
+
+pub type LoadResult<T> = Result<T, LoadError>;
+pub type WriteResult<T> = Result<T, WriteError>;
+
+pub enum LoadError {
+    ReadError(ReadError),
+    WriteError(WriteError),
+}
+
+impl From<ReadError> for LoadError {
+    fn from(e: ReadError) -> Self {
+        Self::ReadError(e)
+    }
+}
+
+impl From<WriteError> for LoadError {
+    fn from(e: WriteError) -> Self {
+        Self::WriteError(e)
+    }
+}
+pub struct WriteTexTask {
+    data: TexData,
+    result_sender: Sender<LoadResult<TexId>>,
+}
+
+impl WriteTexTask {
+    pub fn new(data: TexData, result_sender: Sender<LoadResult<TexId>>) -> Self {
+        Self {
+            data,
+            result_sender,
+        }
+    }
+}
+
+impl From<WriteTexTask> for Task {
+    fn from(t: WriteTexTask) -> Self {
+        Task::WriteTexTask(t)
+    }
 }

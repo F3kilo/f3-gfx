@@ -1,19 +1,22 @@
-use crate::tex_waiter::TexUnloader;
 use crate::back::TexId;
+use crate::tex_waiter::TexRemover;
 
 pub struct Tex {
     id: TexId,
-    unloader: TexUnloader,
+    remover: TexRemover,
 }
 
 impl Tex {
-    pub fn new(id: TexId, unloader: TexUnloader) -> Self {
-        Self { id, unloader }
+    pub fn new(id: TexId, unloader: TexRemover) -> Self {
+        Self {
+            id,
+            remover: unloader,
+        }
     }
 }
 
 impl Drop for Tex {
     fn drop(&mut self) {
-        self.unloader.unload(self.id)
+        self.remover.remove(self.id)
     }
 }

@@ -1,5 +1,5 @@
-use crate::back::{LoadResult, TexId};
-use crate::gfx::Task;
+use crate::back::TexId;
+use crate::gfx::{LoadResult, Task};
 use crate::tex::Tex;
 use log::warn;
 use std::mem;
@@ -7,14 +7,14 @@ use std::sync::mpsc::{Receiver, Sender, TryRecvError};
 
 pub struct TexWaiter {
     rx: Option<TexReceiver>,
-    unloader: TexUnloader,
+    remover: TexRemover,
 }
 
 impl TexWaiter {
-    pub fn new(recv: Receiver<LoadResult<TexId>>, unloader: TexUnloader) -> Self {
+    pub fn new(recv: Receiver<LoadResult<TexId>>, unloader: TexRemover) -> Self {
         Self {
             rx: Some(TexReceiver::new(recv)),
-            unloader,
+            remover: unloader,
         }
     }
 
@@ -50,7 +50,7 @@ impl TexWaiter {
     }
 
     fn id_to_tex(&self, result: TakeResult<LoadResult<TexId>>) -> TakeResult<LoadResult<Tex>> {
-        result.map(|load_result| load_result.map(|id| Tex::new(id, self.unloader.clone())))
+        result.map(|load_result| load_result.map(|id| Tex::new(id, self.remover.clone())))
     }
 }
 
@@ -62,7 +62,7 @@ impl Drop for TexWaiter {
             Err(_) => {
                 let recv = mem::replace(&mut self.rx, None);
                 if let Some(recv) = recv {
-                    self.unloader.unload_later(recv.into())
+                    self.remover.remove_later(recv.into())
                 }
             }
         }
@@ -110,21 +110,21 @@ impl From<TexReceiver> for Receiver<LoadResult<TexId>> {
 }
 
 #[derive(Clone)]
-pub struct TexUnloader {
+pub struct TexRemover {
     tx: Sender<Task>,
 }
 
-impl TexUnloader {
+impl TexRemover {
     pub fn new(tx: Sender<Task>) -> Self {
         Self { tx }
     }
 
-    pub fn unload(&self, id: TexId) {
-        let _ = self.tx.send(Task::UnloadTex(id));
+    pub fn remove(&self, id: TexId) {
+        let _ = self.tx.send(Task::RemoveTex(id));
     }
 
-    pub fn unload_later(&self, recv: Receiver<LoadResult<TexId>>) {
-        let _ = self.tx.send(Task::LaterUnloadTex(recv));
+    pub fn remove_later(&self, recv: Receiver<LoadResult<TexId>>) {
+        let _ = self.tx.send(Task::RemoveTexLater(recv));
     }
 }
 

@@ -1,5 +1,9 @@
+use crate::gfx::LoadResult;
+use std::sync::mpsc::Sender;
+
 pub trait Backend: Send {
-    fn unload_tex(&mut self, id: TexId);
+    fn write_tex(&mut self, data: TexData, result_sender: Sender<LoadResult<TexId>>);
+    fn remove_tex(&mut self, id: TexId);
 }
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]
@@ -11,7 +15,8 @@ impl From<u64> for TexId {
     }
 }
 
+pub type WriteResult<T> = Result<T, WriteError>;
 
-pub type LoadResult<T> = Result<T, LoadError>;
+pub struct WriteError;
 
-pub struct LoadError;
+pub struct TexData {}
