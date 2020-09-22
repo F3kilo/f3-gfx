@@ -2,10 +2,11 @@ use crate::back::{Backend, LoadResult, TexId};
 use crate::tex::Tex;
 use crate::tex_waiter::{TexUnloader, TexWaiter};
 use std::path::PathBuf;
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::{Receiver, Sender, TryRecvError};
 use std::sync::{mpsc, Arc};
 use std::{mem, thread};
 use tokio::runtime::Runtime;
+use tokio::time::Duration;
 
 pub fn run(back: Box<dyn Backend>) -> Link {
     let (task_tx, task_rx) = mpsc::channel();
@@ -79,7 +80,7 @@ impl Tasker {
             Task::ReplaceBack(b) => self.replace_back(b),
             Task::LoadTex(task) => self.load_tex(task),
             Task::UnloadTex(id) => self.back.unload_tex(id),
-            Task::LaterUnloadTex(_) => todo!(),
+            Task::LaterUnloadTex(r) => self.unload_tex_later(r),
         }
     }
 
@@ -89,6 +90,23 @@ impl Tasker {
 
     fn load_tex(&mut self, task: LoadTexTask) {
         todo!()
+    }
+
+    fn unload_tex_later(&mut self, r: Receiver<LoadResult<TexId>>) {
+        let task_sender = self.task_tx.clone();
+        self.rt.spawn(async move {
+            let result = r.try_recv();
+            if let Ok(Ok(id)) = result {
+                let _ = task_sender.send(Task::UnloadTex(id));
+                return;
+            }
+
+            if let Err(TryRecvError::Empty) = result {
+                tokio::time::delay_for(Duration::from_secs(1)).await;
+                let _ = task_sender.send(Task::LaterUnloadTex(r));
+                return;
+            }
+        });
     }
 }
 

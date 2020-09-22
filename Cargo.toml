@@ -11,4 +11,4 @@ log = "0.4.11"
 
 [dependencies.tokio]
 version = "0.2.22"
-features = ["rt-threaded"]
+features = ["rt-threaded", "time"]
