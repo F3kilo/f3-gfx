@@ -1,6 +1,7 @@
 use crate::back::TexId;
-use crate::gfx::{LoadResult, Task};
+use crate::task::Task;
 use crate::tex::Tex;
+use crate::LoadResult;
 use log::warn;
 use std::mem;
 use std::sync::mpsc::{Receiver, Sender, TryRecvError};

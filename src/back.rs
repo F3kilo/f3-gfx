@@ -1,4 +1,4 @@
-use crate::gfx::LoadResult;
+use crate::LoadResult;
 use std::sync::mpsc::Sender;
 
 pub trait Backend: Send {
