@@ -112,20 +112,20 @@ impl From<TexReceiver> for Receiver<LoadResult<TexId>> {
 
 #[derive(Clone)]
 pub struct TexRemover {
-    tx: Sender<Task>,
+    tx: Sender<Box<dyn Task>>,
 }
 
 impl TexRemover {
-    pub fn new(tx: Sender<Task>) -> Self {
+    pub fn new(tx: Sender<Box<dyn Task>>) -> Self {
         Self { tx }
     }
 
     pub fn remove(&self, id: TexId) {
-        let _ = self.tx.send(Task::RemoveTex(id));
+        todo!()
     }
 
     pub fn remove_later(&self, recv: Receiver<LoadResult<TexId>>) {
-        let _ = self.tx.send(Task::RemoveTexLater(recv));
+        todo!()
     }
 }
 

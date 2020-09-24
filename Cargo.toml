@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 log = "0.4.11"
 ktx2-reader = "0.1.1"
+async-trait = "0.1.40"
 
 [dependencies.tokio]
 version = "0.2.22"
