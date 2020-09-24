@@ -12,6 +12,7 @@ pub mod back;
 mod gfx;
 pub mod link;
 mod read_tex;
+mod running;
 mod task;
 pub mod tex;
 pub mod tex_waiter;
