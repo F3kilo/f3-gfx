@@ -7,10 +7,6 @@ pub struct RunningTasks {
 }
 
 impl RunningTasks {
-    pub fn new() -> Self {
-        Self { tasks: Vec::new() }
-    }
-
     pub fn update(&mut self) {
         self.tasks.retain(|t| !t.is_ready());
     }
@@ -22,8 +18,8 @@ impl RunningTasks {
         }
     }
 
-    pub fn add(&mut self, task: RunningTask) {
-        self.tasks.push(task)
+    pub fn add(&mut self, task: JoinHandle<()>) {
+        self.tasks.push(RunningTask::new(task))
     }
 
     pub fn len(&self) -> usize {
@@ -31,7 +27,15 @@ impl RunningTasks {
     }
 }
 
-pub struct RunningTask {
+impl Default for RunningTasks {
+    fn default() -> Self {
+        Self {
+            tasks: Vec::default(),
+        }
+    }
+}
+
+struct RunningTask {
     handle: Option<JoinHandle<()>>,
 }
 
