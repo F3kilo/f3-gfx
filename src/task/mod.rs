@@ -1,4 +1,5 @@
 pub mod load_tex;
+pub mod remove_tex;
 
 use crate::gfx::Context;
 use log::error;

@@ -1,4 +1,5 @@
 use crate::back::TexId;
+use crate::task::remove_tex::{RemoveTex, RemoveTexLater};
 use crate::task::Task;
 use crate::tex::Tex;
 use crate::LoadResult;
@@ -121,11 +122,12 @@ impl TexRemover {
     }
 
     pub fn remove(&self, id: TexId) {
-        todo!()
+        let _ = self.tx.send(Box::new(RemoveTex::new(id)));
     }
 
     pub fn remove_later(&self, recv: Receiver<LoadResult<TexId>>) {
-        todo!()
+        let task = Box::new(RemoveTexLater::new(recv));
+        let _ = self.tx.send(task);
     }
 }
 
