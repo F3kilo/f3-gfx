@@ -46,7 +46,7 @@ impl Tasker {
     fn refresh_runing_tasks(&mut self) {
         const MAX_RUNNING_TASKS_COUNT: usize = 128;
         if self.ctx.running.len() > MAX_RUNNING_TASKS_COUNT {
-            self.ctx.running.update();
+            self.ctx.running.refresh();
         }
     }
 }
