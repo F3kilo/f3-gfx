@@ -10,9 +10,10 @@ pub trait StoreResource: Send {
     type Data;
 
     async fn write(&mut self, data: Self::Data) -> WriteResult<Self::Id>;
-    async fn read(&self, data: Self::Data) -> ReadResult<Self::Data>;
+    async fn read(&self, id: Self::Id) -> ReadResult<Self::Data>;
     async fn remove(&mut self, id: Self::Id);
 
+    fn contains(&self, id: Self::Id) -> bool;
     fn list(&self) -> Vec<Self::Id>;
 }
 
@@ -29,7 +30,10 @@ impl From<u64> for TexId {
 
 pub type ReadResult<T> = Result<T, ReadError>;
 
-pub struct ReadError;
+pub enum ReadError {
+    NotFound,
+    CantRead(&'static str),
+}
 
 pub type WriteResult<T> = Result<T, WriteError>;
 
