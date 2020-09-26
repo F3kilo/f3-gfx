@@ -133,6 +133,7 @@ impl TexRemover {
 
 pub type TakeResult<T> = Result<T, TakeError>;
 
+#[derive(Debug)]
 pub enum TakeError {
     NotReady,
     NotAvailable,

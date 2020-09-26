@@ -32,6 +32,7 @@ pub fn run(back: Box<dyn Backend>) -> Link {
 pub type LoadResult<T> = Result<T, LoadError>;
 pub type WriteResult<T> = Result<T, WriteError>;
 
+#[derive(Debug)]
 pub enum LoadError {
     ReadError(ReadError),
     WriteError(WriteError),

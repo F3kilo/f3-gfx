@@ -3,9 +3,18 @@ use async_trait::async_trait;
 use f3_gfx::back::{
     Backend, ReadError, ReadResult, StoreResource, StoreTex, TexData, TexId, WriteResult,
 };
+use futures_util::core_reexport::time::Duration;
 
 pub struct DummyBack {
     tex_storage: TexStorage,
+}
+
+impl Default for DummyBack {
+    fn default() -> Self {
+        Self {
+            tex_storage: TexStorage::default(),
+        }
+    }
 }
 
 impl Backend for DummyBack {
@@ -14,7 +23,7 @@ impl Backend for DummyBack {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 struct TexStorage {
     ids: Vec<TexId>,
 }
@@ -27,6 +36,7 @@ impl StoreResource for TexStorage {
     type Data = TexData;
 
     async fn write(&mut self, _data: Self::Data) -> WriteResult<Self::Id> {
+        tokio::time::delay_for(Duration::from_millis(200)).await;
         let new_id = id_counter::get_unique_id();
         self.ids.push(new_id);
         Ok(new_id)
@@ -43,6 +53,7 @@ impl StoreResource for TexStorage {
         if let Some(index) = self.get_pos(id) {
             self.ids.swap_remove(index);
         };
+        tokio::time::delay_for(Duration::from_millis(200)).await;
     }
 
     fn contains(&self, id: Self::Id) -> bool {
