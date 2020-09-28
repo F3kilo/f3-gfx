@@ -1,10 +1,9 @@
 use crate::back::TexId;
-use crate::task::remove_tex::{RemoveTex, RemoveTexLater};
-use crate::task::Task;
+use crate::task::remove_tex::RemoveTex;
+use crate::task::{SyncTaskSender, Task};
 use crate::tex::Tex;
 use crate::LoadResult;
 use log::warn;
-use std::mem;
 use std::sync::mpsc::{Receiver, Sender, TryRecvError};
 
 pub struct TexWaiter {
@@ -13,7 +12,7 @@ pub struct TexWaiter {
 }
 
 impl TexWaiter {
-    pub fn new(recv: Receiver<LoadResult<TexId>>, unloader: TexRemover) -> Self {
+    pub fn new(recv: Receiver<LoadResult<Tex>>, unloader: TexRemover) -> Self {
         Self {
             rx: Some(TexReceiver::new(recv)),
             remover: unloader,
@@ -27,7 +26,7 @@ impl TexWaiter {
                 if result.is_ok() {
                     self.rx = None;
                 }
-                self.id_to_tex(result)
+                result
             }
             None => Err(Self::already_taken_error()),
         }
@@ -40,7 +39,7 @@ impl TexWaiter {
                 if result.is_ok() {
                     self.rx = None;
                 }
-                self.id_to_tex(result)
+                result
             }
             None => Err(Self::already_taken_error()),
         }
@@ -50,37 +49,18 @@ impl TexWaiter {
         warn!("Try to take texture, which is already taken.");
         TakeError::AlreadyTaken
     }
-
-    fn id_to_tex(&self, result: TakeResult<LoadResult<TexId>>) -> TakeResult<LoadResult<Tex>> {
-        result.map(|load_result| load_result.map(|id| Tex::new(id, self.remover.clone())))
-    }
-}
-
-impl Drop for TexWaiter {
-    fn drop(&mut self) {
-        let taken = self.try_take();
-        match taken {
-            Ok(tex_result) => {}
-            Err(_) => {
-                let recv = mem::replace(&mut self.rx, None);
-                if let Some(recv) = recv {
-                    self.remover.remove_later(recv.into())
-                }
-            }
-        }
-    }
 }
 
 struct TexReceiver {
-    recv: Receiver<LoadResult<TexId>>,
+    recv: Receiver<LoadResult<Tex>>,
 }
 
 impl TexReceiver {
-    pub fn new(recv: Receiver<LoadResult<TexId>>) -> Self {
+    pub fn new(recv: Receiver<LoadResult<Tex>>) -> Self {
         Self { recv }
     }
 
-    pub fn try_recv(&self) -> TakeResult<LoadResult<TexId>> {
+    pub fn try_recv(&self) -> TakeResult<LoadResult<Tex>> {
         let received = self.recv.try_recv();
         match received {
             Ok(tex_result) => Ok(tex_result),
@@ -91,7 +71,7 @@ impl TexReceiver {
         }
     }
 
-    pub fn wait_ready(&self) -> TakeResult<LoadResult<TexId>> {
+    pub fn wait_ready(&self) -> TakeResult<LoadResult<Tex>> {
         let received = self.recv.recv();
         match received {
             Ok(tex_result) => Ok(tex_result),
@@ -105,7 +85,7 @@ impl TexReceiver {
     }
 }
 
-impl From<TexReceiver> for Receiver<LoadResult<TexId>> {
+impl From<TexReceiver> for Receiver<LoadResult<Tex>> {
     fn from(r: TexReceiver) -> Self {
         r.recv
     }
@@ -113,21 +93,18 @@ impl From<TexReceiver> for Receiver<LoadResult<TexId>> {
 
 #[derive(Clone)]
 pub struct TexRemover {
-    tx: Sender<Box<dyn Task>>,
+    tx: SyncTaskSender,
 }
 
 impl TexRemover {
     pub fn new(tx: Sender<Box<dyn Task>>) -> Self {
-        Self { tx }
+        Self {
+            tx: SyncTaskSender::new(tx),
+        }
     }
 
     pub fn remove(&self, id: TexId) {
         let _ = self.tx.send(Box::new(RemoveTex::new(id)));
-    }
-
-    pub fn remove_later(&self, recv: Receiver<LoadResult<TexId>>) {
-        let task = Box::new(RemoveTexLater::new(recv));
-        let _ = self.tx.send(task);
     }
 }
 
