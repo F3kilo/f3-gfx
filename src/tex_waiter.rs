@@ -8,14 +8,12 @@ use std::sync::mpsc::{Receiver, Sender, TryRecvError};
 
 pub struct TexWaiter {
     rx: Option<TexReceiver>,
-    remover: TexRemover,
 }
 
 impl TexWaiter {
-    pub fn new(recv: Receiver<LoadResult<Tex>>, unloader: TexRemover) -> Self {
+    pub fn new(recv: Receiver<LoadResult<Tex>>) -> Self {
         Self {
             rx: Some(TexReceiver::new(recv)),
-            remover: unloader,
         }
     }
 
