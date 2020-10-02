@@ -47,12 +47,3 @@ pub trait Remove: Send + Sync {
 
     fn remove(&mut self, res: Self::Resource);
 }
-
-impl Remove for SyncTaskSender {
-    type Resource = TexId;
-
-    fn remove(&mut self, res: Self::Resource) {
-        let remove_task = RemoveTex::new(res);
-        let _ = self.send(Box::new(remove_task));
-    }
-}

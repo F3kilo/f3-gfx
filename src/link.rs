@@ -1,5 +1,6 @@
-use crate::back::{Backend, TexId};
+use crate::back::{Backend, GeomId, TexId};
 use crate::res::Resource;
+use crate::task::load_geom::LoadGeom;
 use crate::task::load_tex::LoadTex;
 use crate::task::Task;
 use crate::waiter::ReceiveOnce;
@@ -28,7 +29,17 @@ impl Link {
         let _ = self.task_tx.send(Box::new(LoadTex::new(path, tx)));
         ReceiveOnce::new(rx)
     }
+
+    pub fn load_geom(&self, path: PathBuf) -> ReceiveOnce<TexReceiver> {
+        log::trace!("Start load tex: {:?}", path);
+        let (tx, rx) = mpsc::channel();
+        let _ = self.task_tx.send(Box::new(LoadGeom::new(path, tx)));
+        ReceiveOnce::new(rx)
+    }
 }
 
 pub type Tex = Resource<TexId>;
 type TexReceiver = Receiver<LoadResult<Tex>>;
+
+pub type Geom = Resource<GeomId>;
+type GeomReceiver = Receiver<LoadResult<Geom>>;

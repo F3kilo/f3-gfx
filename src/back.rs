@@ -2,6 +2,7 @@ use async_trait::async_trait;
 
 pub trait Backend: Send {
     fn get_tex_storage(&mut self) -> Box<dyn StoreTex>;
+    fn get_geom_storage(&mut self) -> Box<dyn StoreGeom>;
 }
 
 #[async_trait]
@@ -18,11 +19,21 @@ pub trait StoreResource: Send {
 }
 
 pub trait StoreTex: StoreResource<Id = TexId, Data = TexData> {}
+pub trait StoreGeom: StoreResource<Id = GeomId, Data = GeomData> {}
 
 #[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]
 pub struct TexId(u64);
 
 impl From<u64> for TexId {
+    fn from(i: u64) -> Self {
+        Self(i)
+    }
+}
+
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]
+pub struct GeomId(u64);
+
+impl From<u64> for GeomId {
     fn from(i: u64) -> Self {
         Self(i)
     }
@@ -41,3 +52,4 @@ pub type WriteResult<T> = Result<T, WriteError>;
 pub struct WriteError;
 
 pub struct TexData {}
+pub struct GeomData {}

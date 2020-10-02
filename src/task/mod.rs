@@ -1,3 +1,4 @@
+pub mod load_geom;
 pub mod load_tex;
 pub mod remove_tex;
 
