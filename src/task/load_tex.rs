@@ -1,8 +1,7 @@
 use crate::back::{StoreTex, TexId};
 use crate::gfx::Context;
-use crate::task::Task;
+use crate::task::{SyncTaskSender, Task};
 use crate::tex::Tex;
-use crate::tex_waiter::TexRemover;
 use crate::{read_tex, task, LoadResult};
 use core::mem;
 use std::path::PathBuf;
@@ -44,10 +43,9 @@ impl Task for LoadTex {
             Some(d) => {
                 let task_sender = ctx.task_tx.clone();
                 ctx.rt.spawn(async move {
-                    let tex = Self::load_tex(d.path, tex_storage).await.map(|id| {
-                        let remover = TexRemover::new(task_sender);
-                        Tex::new(id, remover)
-                    });
+                    let tex = Self::load_tex(d.path, tex_storage)
+                        .await
+                        .map(|id| Tex::new(id, Box::new(SyncTaskSender::new(task_sender.clone()))));
 
                     let _ = d.result_sender.send(tex);
                 })

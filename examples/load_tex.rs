@@ -10,8 +10,8 @@ fn main() {
     let mut tex0 = gfx_link.load_tex(path.clone());
     let mut tex1 = gfx_link.load_tex(path);
 
-    let tex0 = tex0.wait_ready();
-    let tex1 = tex1.wait_ready();
+    let tex0 = tex0.wait();
+    let tex1 = tex1.wait();
 
     println!("Tex0: {:?}", tex0);
     println!("Tex1: {:?}", tex1);

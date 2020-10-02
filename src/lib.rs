@@ -15,7 +15,7 @@ mod read_tex;
 mod running;
 mod task;
 pub mod tex;
-pub mod tex_waiter;
+pub mod waiter;
 
 pub fn run(back: Box<dyn Backend>) -> Link {
     let (task_tx, task_rx) = mpsc::channel();

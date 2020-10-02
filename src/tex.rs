@@ -1,5 +1,6 @@
 use crate::back::TexId;
-use crate::tex_waiter::TexRemover;
+use crate::task::remove_tex::RemoveTex;
+use crate::task::SyncTaskSender;
 use futures_util::core_reexport::fmt::{Debug, Formatter};
 use std::fmt;
 use std::sync::Arc;
@@ -16,28 +17,40 @@ impl Debug for Tex {
 }
 
 impl Tex {
-    pub fn new(id: TexId, unloader: TexRemover) -> Self {
-        let inner = Arc::new(UniqueTex::new(id, unloader));
+    pub fn new(id: TexId, remover: Box<dyn Remove<Resource = TexId>>) -> Self {
+        let inner = Arc::new(UniqueTex::new(id, remover));
         Self { inner }
     }
 }
 
 struct UniqueTex {
     id: TexId,
-    remover: TexRemover,
+    remover: Box<dyn Remove<Resource = TexId>>,
 }
 
 impl UniqueTex {
-    pub fn new(id: TexId, unloader: TexRemover) -> Self {
-        Self {
-            id,
-            remover: unloader,
-        }
+    pub fn new(id: TexId, remover: Box<dyn Remove<Resource = TexId>>) -> Self {
+        Self { id, remover }
     }
 }
 
 impl Drop for UniqueTex {
     fn drop(&mut self) {
         self.remover.remove(self.id)
+    }
+}
+
+pub trait Remove: Send + Sync {
+    type Resource;
+
+    fn remove(&mut self, res: Self::Resource);
+}
+
+impl Remove for SyncTaskSender {
+    type Resource = TexId;
+
+    fn remove(&mut self, res: Self::Resource) {
+        let remove_task = RemoveTex::new(res);
+        let _ = self.send(Box::new(remove_task));
     }
 }

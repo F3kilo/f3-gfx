@@ -1,10 +1,12 @@
 use crate::back::Backend;
 use crate::task::load_tex::LoadTex;
 use crate::task::Task;
-use crate::tex_waiter::TexWaiter;
+use crate::tex::Tex;
+use crate::waiter::ReceiveOnce;
+use crate::LoadResult;
 use std::path::PathBuf;
 use std::sync::mpsc;
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::{Receiver, Sender};
 
 #[derive(Clone)]
 pub struct Link {
@@ -20,9 +22,11 @@ impl Link {
         todo!()
     }
 
-    pub fn load_tex(&self, path: PathBuf) -> TexWaiter {
+    pub fn load_tex(&self, path: PathBuf) -> ReceiveOnce<TexReceiver> {
         let (tx, rx) = mpsc::channel();
         let _ = self.task_tx.send(Box::new(LoadTex::new(path, tx)));
-        TexWaiter::new(rx)
+        ReceiveOnce::new(rx)
     }
 }
+
+type TexReceiver = Receiver<LoadResult<Tex>>;
