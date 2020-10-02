@@ -1,7 +1,7 @@
-use crate::back::Backend;
+use crate::back::{Backend, TexId};
+use crate::res::Resource;
 use crate::task::load_tex::LoadTex;
 use crate::task::Task;
-use crate::tex::Tex;
 use crate::waiter::ReceiveOnce;
 use crate::LoadResult;
 use std::path::PathBuf;
@@ -30,4 +30,5 @@ impl Link {
     }
 }
 
+pub type Tex = Resource<TexId>;
 type TexReceiver = Receiver<LoadResult<Tex>>;

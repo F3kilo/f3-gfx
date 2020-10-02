@@ -1,7 +1,7 @@
 use crate::back::{StoreTex, TexId};
 use crate::gfx::Context;
+use crate::link::Tex;
 use crate::task::{SyncTaskSender, Task};
-use crate::tex::Tex;
 use crate::{read_tex, task, LoadResult};
 use core::mem;
 use std::fmt;

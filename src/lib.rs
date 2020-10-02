@@ -12,9 +12,9 @@ pub mod back;
 mod gfx;
 pub mod link;
 mod read_tex;
+pub mod res;
 mod running;
 mod task;
-pub mod tex;
 pub mod waiter;
 
 pub fn run(back: Box<dyn Backend>) -> Link {
