@@ -3,11 +3,12 @@ pub mod remove_tex;
 
 use crate::gfx::Context;
 use log::error;
+use std::fmt::Debug;
 use std::sync::mpsc::{SendError, Sender};
 use std::sync::{Arc, Mutex};
 use tokio::task::JoinHandle;
 
-pub trait Task: Send {
+pub trait Task: Send + Debug {
     fn start(&mut self, ctx: &mut Context) -> JoinHandle<()>;
 }
 

@@ -1,3 +1,4 @@
+use futures_util::core_reexport::fmt::Debug;
 use std::error::Error;
 use std::fmt;
 use std::sync::mpsc::{Receiver, RecvError, TryRecvError};
@@ -14,30 +15,37 @@ impl<Recv: Receive> ReceiveOnce<Recv> {
     pub fn try_take(&mut self) -> TakeResult<Recv::Item> {
         if let Some(r) = &mut self.recv {
             let received = r.try_take()?;
+            log::trace!("Taking resource: {:?}", received);
             self.recv = None;
             return Ok(received);
         }
-        Err(TakeError::AlreadyTaken)
+        Err(already_taken_error())
     }
 
     pub fn wait(&mut self) -> TakeResult<Recv::Item> {
         if let Some(r) = &mut self.recv {
             let received = r.wait()?;
+            log::trace!("Taking resource after wait: {:?}", received);
             self.recv = None;
             return Ok(received);
         }
-        Err(TakeError::AlreadyTaken)
+        Err(already_taken_error())
     }
 }
 
+fn already_taken_error() -> TakeError {
+    log::warn!("Try to take already taken resource");
+    TakeError::AlreadyTaken
+}
+
 pub trait Receive {
-    type Item;
+    type Item: Debug;
 
     fn try_take(&mut self) -> TakeResult<Self::Item>;
     fn wait(&mut self) -> TakeResult<Self::Item>;
 }
 
-impl<T> Receive for Receiver<T> {
+impl<T: Debug> Receive for Receiver<T> {
     type Item = T;
 
     fn try_take(&mut self) -> TakeResult<Self::Item> {

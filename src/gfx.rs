@@ -35,6 +35,7 @@ impl Tasker {
     pub fn start_next_task(&mut self) -> bool {
         match self.task_rx.recv() {
             Ok(mut task) => {
+                log::trace!("Performing task: {:?}", task);
                 let running_task = task.start(&mut self.ctx);
                 self.ctx.running.add(running_task);
                 true

@@ -4,6 +4,7 @@ use crate::task::{SyncTaskSender, Task};
 use crate::tex::Tex;
 use crate::{read_tex, task, LoadResult};
 use core::mem;
+use std::fmt;
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 use tokio::task::JoinHandle;
@@ -41,16 +42,29 @@ impl Task for LoadTex {
         let tex_storage = ctx.back.get_tex_storage();
         match self.take_data() {
             Some(d) => {
+                log::trace!("Start load texture: {:?}", d.path);
                 let task_sender = ctx.task_tx.clone();
                 ctx.rt.spawn(async move {
                     let tex = Self::load_tex(d.path, tex_storage)
                         .await
                         .map(|id| Tex::new(id, Box::new(SyncTaskSender::new(task_sender.clone()))));
 
+                    log::trace!("Texture loaded. Sending...");
                     let _ = d.result_sender.send(tex);
                 })
             }
             None => task::task_started_twice_error("LoadTex"),
         }
+    }
+}
+
+impl fmt::Debug for LoadTex {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let desc = match &self.data {
+            Some(d) => format!("Path: {:?}", d.path),
+            None => "Started".into(),
+        };
+
+        write!(f, "Load texture task: {:?}", desc)
     }
 }

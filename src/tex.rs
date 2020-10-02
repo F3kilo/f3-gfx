@@ -30,12 +30,14 @@ struct UniqueTex {
 
 impl UniqueTex {
     pub fn new(id: TexId, remover: Box<dyn Remove<Resource = TexId>>) -> Self {
+        log::trace!("New unique tex #{:?} created", id);
         Self { id, remover }
     }
 }
 
 impl Drop for UniqueTex {
     fn drop(&mut self) {
+        log::trace!("Removing tex #{:?}", self.id);
         self.remover.remove(self.id)
     }
 }

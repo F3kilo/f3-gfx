@@ -23,6 +23,7 @@ impl Link {
     }
 
     pub fn load_tex(&self, path: PathBuf) -> ReceiveOnce<TexReceiver> {
+        log::trace!("Start load tex: {:?}", path);
         let (tx, rx) = mpsc::channel();
         let _ = self.task_tx.send(Box::new(LoadTex::new(path, tx)));
         ReceiveOnce::new(rx)

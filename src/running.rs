@@ -10,10 +10,19 @@ pub struct RunningTasks {
 
 impl RunningTasks {
     pub fn refresh(&mut self) {
+        log::trace!(
+            "Refreshing running tasks list. Count: {:?} tasks",
+            self.tasks.len()
+        );
+
         for task in &mut self.tasks {
             task.poll()
         }
         self.tasks.retain(|t| !t.is_ready());
+        log::trace!(
+            "Running tasks list has been refreshed. Count: {:?} tasks",
+            self.tasks.len()
+        );
     }
 
     fn join_tasks(&mut self, rt: &Runtime) -> RunningTask {
@@ -32,11 +41,13 @@ impl RunningTasks {
     }
 
     pub fn wait_all(&mut self, rt: &Runtime) {
+        log::trace!("Waiting for all {:?} tasks", { self.tasks.len() });
         let mut joined = self.join_tasks(rt);
         while !joined.is_ready() {
             std::thread::sleep(Duration::from_millis(20));
             joined.poll()
         }
+        log::trace!("All tasks finished");
     }
 
     pub fn add(&mut self, task: JoinHandle<()>) {

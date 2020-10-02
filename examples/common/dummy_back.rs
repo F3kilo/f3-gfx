@@ -4,6 +4,7 @@ use f3_gfx::back::{
     Backend, ReadError, ReadResult, StoreResource, StoreTex, TexData, TexId, WriteResult,
 };
 use futures_util::core_reexport::time::Duration;
+use std::sync::{Arc, Mutex};
 
 pub struct DummyBack {
     tex_storage: TexStorage,
@@ -25,7 +26,7 @@ impl Backend for DummyBack {
 
 #[derive(Clone, Default)]
 struct TexStorage {
-    ids: Vec<TexId>,
+    ids: Arc<Mutex<Vec<TexId>>>,
 }
 
 impl StoreTex for TexStorage {}
@@ -38,7 +39,8 @@ impl StoreResource for TexStorage {
     async fn write(&mut self, _data: Self::Data) -> WriteResult<Self::Id> {
         tokio::time::delay_for(Duration::from_millis(200)).await;
         let new_id = id_counter::get_unique_id();
-        self.ids.push(new_id);
+        log::trace!("Add {:?} to tex storage", new_id);
+        self.ids.lock().unwrap().push(new_id);
         Ok(new_id)
     }
 
@@ -51,9 +53,15 @@ impl StoreResource for TexStorage {
 
     async fn remove(&mut self, id: Self::Id) {
         if let Some(index) = self.get_pos(id) {
-            self.ids.swap_remove(index);
+            log::trace!("Remove {:?} from tex storage", id);
+            self.ids.lock().unwrap().swap_remove(index);
+            tokio::time::delay_for(Duration::from_millis(200)).await;
+            return;
         };
-        tokio::time::delay_for(Duration::from_millis(200)).await;
+        log::trace!(
+            "Try to remove {:?} from tex storage, but it wasn't found",
+            id
+        );
     }
 
     fn contains(&self, id: Self::Id) -> bool {
@@ -61,12 +69,12 @@ impl StoreResource for TexStorage {
     }
 
     fn list(&self) -> Vec<Self::Id> {
-        self.ids.clone()
+        self.ids.lock().unwrap().clone()
     }
 }
 
 impl TexStorage {
     fn get_pos(&self, id: TexId) -> Option<usize> {
-        self.ids.iter().position(|i| *i == id)
+        self.ids.lock().unwrap().iter().position(|i| *i == id)
     }
 }

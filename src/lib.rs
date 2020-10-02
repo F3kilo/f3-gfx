@@ -26,6 +26,8 @@ pub fn run(back: Box<dyn Backend>) -> Link {
         while tasker.start_next_task() {}
     });
 
+    log::trace!("Gfx run");
+
     link
 }
 
