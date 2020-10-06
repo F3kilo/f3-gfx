@@ -1,9 +1,8 @@
-use crate::back::{GeomData, GeomId, StoreGeom, StoreTex, TexId};
+use crate::back::{GeomData, GeomId, StoreGeom};
 use crate::gfx::Context;
-use crate::link::{Geom, Tex};
-use crate::res::Remove;
-use crate::task::{SyncTaskSender, Task};
-use crate::{read_tex, task, LoadResult};
+use crate::link::Geom;
+use crate::task::{remove_geom, SyncTaskSender, Task};
+use crate::{task, LoadResult};
 use core::mem;
 use std::fmt;
 use std::path::PathBuf;
@@ -38,7 +37,7 @@ impl LoadGeom {
     }
 
     fn read_geom_data() -> GeomData {
-        todo!()
+        GeomData {}
     }
 }
 
@@ -48,11 +47,11 @@ impl Task for LoadGeom {
         match self.take_data() {
             Some(d) => {
                 log::trace!("Start load geometry: {:?}", d.path);
-                let task_sender = ctx.task_tx.clone();
+                let task_sender = SyncTaskSender::new(ctx.task_tx.clone());
                 ctx.rt.spawn(async move {
-                    let geom = Self::load_geom(d.path, geom_storage).await.map(|id| {
-                        Geom::new(id, Box::new(SyncTaskSender::new(task_sender.clone())))
-                    });
+                    let geom = Self::load_geom(d.path, geom_storage)
+                        .await
+                        .map(|id| Geom::new(id, Box::new(remove_geom::remover(task_sender))));
 
                     log::trace!("Geometry loaded. Sending...");
                     let _ = d.result_sender.send(geom);
@@ -71,14 +70,5 @@ impl fmt::Debug for LoadGeom {
         };
 
         write!(f, "Load geometry task: {:?}", desc)
-    }
-}
-
-impl Remove for GeomRemover {
-    type Resource = TexId;
-
-    fn remove(&mut self, res: Self::Resource) {
-        let remove_task = RemoveTex::new(res);
-        let _ = self.send(Box::new(remove_task));
     }
 }

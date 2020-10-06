@@ -1,40 +1,76 @@
 use crate::common::id_counter;
 use async_trait::async_trait;
 use f3_gfx::back::{
-    Backend, ReadError, ReadResult, StoreResource, StoreTex, TexData, TexId, WriteResult,
+    Backend, GeomData, GeomId, ReadError, ReadResult, StoreGeom, StoreResource, StoreTex, TexData,
+    TexId, WriteResult,
 };
+use futures_util::core_reexport::fmt::Debug;
 use futures_util::core_reexport::time::Duration;
 use std::sync::{Arc, Mutex};
 
+#[derive(Default)]
 pub struct DummyBack {
-    tex_storage: TexStorage,
-}
-
-impl Default for DummyBack {
-    fn default() -> Self {
-        Self {
-            tex_storage: TexStorage::default(),
-        }
-    }
+    tex_storage: Storage<TexId>,
+    geom_storage: Storage<GeomId>,
 }
 
 impl Backend for DummyBack {
     fn get_tex_storage(&mut self) -> Box<dyn StoreTex> {
         Box::new(self.tex_storage.clone())
     }
+
+    fn get_geom_storage(&mut self) -> Box<dyn StoreGeom> {
+        Box::new(self.geom_storage.clone())
+    }
 }
 
-#[derive(Clone, Default)]
-struct TexStorage {
-    ids: Arc<Mutex<Vec<TexId>>>,
+impl StoreTex for Storage<TexId> {}
+impl ResId for TexId {
+    type Data = TexData;
+
+    fn get_data(&self) -> Self::Data {
+        TexData {}
+    }
 }
 
-impl StoreTex for TexStorage {}
+impl StoreGeom for Storage<GeomId> {}
+impl ResId for GeomId {
+    type Data = GeomData;
+
+    fn get_data(&self) -> Self::Data {
+        GeomData {}
+    }
+}
+
+#[derive(Clone)]
+struct Storage<T> {
+    ids: Arc<Mutex<Vec<T>>>,
+}
+
+impl<T> Default for Storage<T> {
+    fn default() -> Self {
+        Self {
+            ids: Arc::new(Mutex::new(Vec::new())),
+        }
+    }
+}
+
+impl<T: ResId> Storage<T> {
+    fn get_pos(&self, id: T) -> Option<usize> {
+        self.ids.lock().unwrap().iter().position(|i| *i == id)
+    }
+}
+
+trait ResId: From<u64> + Debug + Eq + PartialEq {
+    type Data: Send + Sync;
+
+    fn get_data(&self) -> Self::Data;
+}
 
 #[async_trait]
-impl StoreResource for TexStorage {
-    type Id = TexId;
-    type Data = TexData;
+impl<T: ResId + Send + Copy> StoreResource for Storage<T> {
+    type Id = T;
+    type Data = T::Data;
 
     async fn write(&mut self, _data: Self::Data) -> WriteResult<Self::Id> {
         tokio::time::delay_for(Duration::from_millis(200)).await;
@@ -45,8 +81,9 @@ impl StoreResource for TexStorage {
     }
 
     async fn read(&self, id: Self::Id) -> ReadResult<Self::Data> {
+        let d = id.get_data();
         match self.get_pos(id) {
-            Some(_) => Ok(TexData {}),
+            Some(_) => Ok(d),
             None => Err(ReadError::NotFound),
         }
     }
@@ -70,11 +107,5 @@ impl StoreResource for TexStorage {
 
     fn list(&self) -> Vec<Self::Id> {
         self.ids.lock().unwrap().clone()
-    }
-}
-
-impl TexStorage {
-    fn get_pos(&self, id: TexId) -> Option<usize> {
-        self.ids.lock().unwrap().iter().position(|i| *i == id)
     }
 }

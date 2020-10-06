@@ -1,7 +1,7 @@
 use crate::back::{StoreTex, TexId};
 use crate::gfx::Context;
 use crate::link::Tex;
-use crate::task::{SyncTaskSender, Task};
+use crate::task::{remove_tex, SyncTaskSender, Task};
 use crate::{read_tex, task, LoadResult};
 use core::mem;
 use std::fmt;
@@ -43,11 +43,11 @@ impl Task for LoadTex {
         match self.take_data() {
             Some(d) => {
                 log::trace!("Start load texture: {:?}", d.path);
-                let task_sender = ctx.task_tx.clone();
+                let task_sender = SyncTaskSender::new(ctx.task_tx.clone());
                 ctx.rt.spawn(async move {
                     let tex = Self::load_tex(d.path, tex_storage)
                         .await
-                        .map(|id| Tex::new(id, Box::new(SyncTaskSender::new(task_sender.clone()))));
+                        .map(|id| Tex::new(id, Box::new(remove_tex::remover(task_sender))));
 
                     log::trace!("Texture loaded. Sending...");
                     let _ = d.result_sender.send(tex);

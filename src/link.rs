@@ -30,7 +30,7 @@ impl Link {
         ReceiveOnce::new(rx)
     }
 
-    pub fn load_geom(&self, path: PathBuf) -> ReceiveOnce<TexReceiver> {
+    pub fn load_geom(&self, path: PathBuf) -> ReceiveOnce<GeomReceiver> {
         log::trace!("Start load tex: {:?}", path);
         let (tx, rx) = mpsc::channel();
         let _ = self.task_tx.send(Box::new(LoadGeom::new(path, tx)));

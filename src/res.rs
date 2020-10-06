@@ -1,6 +1,3 @@
-use crate::back::TexId;
-use crate::task::remove_tex::RemoveTex;
-use crate::task::SyncTaskSender;
 use futures_util::core_reexport::fmt::{Debug, Formatter};
 use std::fmt;
 use std::sync::Arc;
