@@ -55,12 +55,6 @@ impl<T> Default for Storage<T> {
     }
 }
 
-impl<T: ResId> Storage<T> {
-    fn get_pos(&self, id: T) -> Option<usize> {
-        self.ids.lock().unwrap().iter().position(|i| *i == id)
-    }
-}
-
 trait ResId: From<u64> + Debug + Eq + PartialEq {
     type Data: Send + Sync;
 
@@ -81,28 +75,34 @@ impl<T: ResId + Send + Copy> StoreResource for Storage<T> {
     }
 
     async fn read(&self, id: Self::Id) -> ReadResult<Self::Data> {
+        let ids_lock = self.ids.lock().unwrap();
         let d = id.get_data();
-        match self.get_pos(id) {
+        match ids_lock.iter().position(|i| *i == id) {
             Some(_) => Ok(d),
             None => Err(ReadError::NotFound),
         }
     }
 
     async fn remove(&mut self, id: Self::Id) {
-        if let Some(index) = self.get_pos(id) {
-            log::trace!("Remove {:?} from tex storage", id);
-            self.ids.lock().unwrap().swap_remove(index);
-            tokio::time::delay_for(Duration::from_millis(200)).await;
-            return;
-        };
+        {
+            let mut ids_lock = self.ids.lock().unwrap();
+            if let Some(index) = ids_lock.iter().position(|i| *i == id) {
+                log::trace!("Remove {:?} from tex storage", id);
+                ids_lock.swap_remove(index);
+                return;
+            };
+        }
+
         log::trace!(
             "Try to remove {:?} from tex storage, but it wasn't found",
             id
         );
+        tokio::time::delay_for(Duration::from_millis(200)).await;
     }
 
     fn contains(&self, id: Self::Id) -> bool {
-        self.get_pos(id).is_some()
+        let ids_lock = self.ids.lock().unwrap();
+        ids_lock.contains(&id)
     }
 
     fn list(&self) -> Vec<Self::Id> {
