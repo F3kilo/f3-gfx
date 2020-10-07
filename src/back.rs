@@ -1,8 +1,12 @@
+use crate::scene::Scene;
 use async_trait::async_trait;
+use std::error::Error;
+use std::fmt;
 
 pub trait Backend: Send {
     fn get_tex_storage(&mut self) -> Box<dyn StoreTex>;
     fn get_geom_storage(&mut self) -> Box<dyn StoreGeom>;
+    fn get_renderer(&mut self) -> Box<dyn Render>;
 }
 
 #[async_trait]
@@ -53,3 +57,28 @@ pub struct WriteError;
 
 pub struct TexData {}
 pub struct GeomData {}
+
+#[async_trait]
+pub trait Render: Send {
+    async fn render(&mut self, scene: &Scene, render_info: RenderInfo) -> RenderResult;
+}
+
+pub type RenderResult = Result<TexId, RenderError>;
+
+#[derive(Debug)]
+pub enum RenderError {
+    NotEnoughMemory,
+}
+
+impl Error for RenderError {}
+
+impl fmt::Display for RenderError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match &self {
+            RenderError::NotEnoughMemory => write!(f, "Not enough memory to render"),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct RenderInfo {}

@@ -1,9 +1,10 @@
 use crate::common::id_counter;
 use async_trait::async_trait;
 use f3_gfx::back::{
-    Backend, GeomData, GeomId, ReadError, ReadResult, StoreGeom, StoreResource, StoreTex, TexData,
-    TexId, WriteResult,
+    Backend, GeomData, GeomId, ReadError, ReadResult, Render, RenderInfo, RenderResult, StoreGeom,
+    StoreResource, StoreTex, TexData, TexId, WriteResult,
 };
+use f3_gfx::scene::Scene;
 use futures_util::core_reexport::fmt::Debug;
 use futures_util::core_reexport::time::Duration;
 use std::sync::{Arc, Mutex};
@@ -21,6 +22,10 @@ impl Backend for DummyBack {
 
     fn get_geom_storage(&mut self) -> Box<dyn StoreGeom> {
         Box::new(self.geom_storage.clone())
+    }
+
+    fn get_renderer(&mut self) -> Box<dyn Render> {
+        Box::new(Renderer::new(self.tex_storage.clone()))
     }
 }
 
@@ -107,5 +112,28 @@ impl<T: ResId + Send + Copy> StoreResource for Storage<T> {
 
     fn list(&self) -> Vec<Self::Id> {
         self.ids.lock().unwrap().clone()
+    }
+}
+
+struct Renderer {
+    tex_storage: Storage<TexId>,
+}
+
+impl Renderer {
+    pub fn new(tex_storage: Storage<TexId>) -> Self {
+        Self { tex_storage }
+    }
+}
+
+#[async_trait]
+impl Render for Renderer {
+    async fn render(&mut self, scene: &Scene, _render_info: RenderInfo) -> RenderResult {
+        for item in scene.iter() {
+            log::trace!("Rendering item: {:?}", item);
+        }
+
+        let d = TexData {};
+        let tex = self.tex_storage.write(d).await.unwrap();
+        Ok(tex)
     }
 }

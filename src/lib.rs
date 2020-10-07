@@ -14,6 +14,7 @@ pub mod link;
 mod read_tex;
 pub mod res;
 mod running;
+pub mod scene;
 mod task;
 pub mod waiter;
 

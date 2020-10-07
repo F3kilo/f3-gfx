@@ -18,6 +18,10 @@ impl<Res: Debug + Copy> Resource<Res> {
         let inner = Arc::new(UniqueResource::new(res, remover));
         Self { inner }
     }
+
+    pub fn id(&self) -> Res {
+        self.inner.res()
+    }
 }
 
 struct UniqueResource<Res: Debug + Copy> {
@@ -29,6 +33,10 @@ impl<Res: Debug + Copy> UniqueResource<Res> {
     pub fn new(res: Res, remover: Box<dyn Remove<Resource = Res>>) -> Self {
         log::trace!("New unique resource #{:?} created", res);
         Self { res, remover }
+    }
+
+    pub fn res(&self) -> Res {
+        self.res
     }
 }
 

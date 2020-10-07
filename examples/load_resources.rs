@@ -1,6 +1,9 @@
 use crate::common::dummy_back::DummyBack;
+use f3_gfx::back::RenderInfo;
+use f3_gfx::scene::{ColorGeom, Scene, SceneItem};
 use log::{trace, LevelFilter};
 use std::path::PathBuf;
+
 mod common;
 
 fn main() {
@@ -18,16 +21,18 @@ fn main() {
     let mut geom0 = gfx_link.load_geom(geom_path.clone());
     let mut geom1 = gfx_link.load_geom(geom_path);
 
-    let geom0 = geom0.wait();
-    let geom1 = geom1.wait();
+    let geom0 = geom0.wait().unwrap().unwrap();
+    let geom1 = geom1.wait().unwrap().unwrap();
 
-    let tex0 = tex0.wait();
-    let tex1 = tex1.wait();
+    let _tex0 = tex0.wait().unwrap().unwrap();
+    let _tex1 = tex1.wait().unwrap().unwrap();
 
-    log::info!("Tex0: {:?}", tex0);
-    log::info!("Tex1: {:?}", tex1);
-    log::info!("Geom0: {:?}", geom0);
-    log::info!("Geom1: {:?}", geom1);
+    let mut scene = Scene::default();
+    scene.add_item(SceneItem::ColorGeom(ColorGeom::new(geom0, Vec::default())));
+    scene.add_item(SceneItem::ColorGeom(ColorGeom::new(geom1, Vec::default())));
+    let mut render_result = gfx_link.render(scene, RenderInfo {});
+
+    log::info!("Render result: {:?}", render_result.wait());
 }
 
 pub fn tex_path() -> PathBuf {

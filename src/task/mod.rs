@@ -1,7 +1,8 @@
 pub mod load_geom;
 pub mod load_tex;
-pub mod remove_tex;
 mod remove_geom;
+pub mod remove_tex;
+pub mod render;
 
 use crate::gfx::Context;
 use log::error;
