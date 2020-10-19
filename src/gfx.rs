@@ -88,7 +88,7 @@ impl Gfx {
     }
 
     fn perform_deferred_tasks(&mut self) {
-        log::trace!("Performing deferred task");
+        log::trace!("Performing deferred tasks");
         while let Some(task) = self.deferred_tasks.next() {
             log::trace!("Performing deferred task: {:?}", task);
             match task {

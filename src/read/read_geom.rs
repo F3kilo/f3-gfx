@@ -19,13 +19,13 @@ pub async fn read(path: PathBuf) -> ReadResult<GeomData> {
 
 fn extension_not_supported(path: &Path) -> ReadError {
     warn!(
-        "Try read texture file with unsupported extension: {:?}",
+        "Try read geometry file with unsupported extension: {:?}",
         path
     );
     ReadError(format!("Extension is not supported: {:?}", path))
 }
 
 fn extension_not_specified(path: &Path) -> ReadError {
-    warn!("Try read texture file without extension: {:?}", path);
+    warn!("Try read geometry file without extension: {:?}", path);
     ReadError(format!("Extension is not specified: {:?}", path))
 }
