@@ -2,12 +2,13 @@
 #![allow(unused_variables)]
 
 use crate::back::WriteError;
-use crate::read_tex::ReadError;
+use crate::read::ReadError;
 
 pub mod back;
 pub mod deferred_task;
+pub mod geom;
 pub mod gfx;
-mod read_tex;
+pub mod read;
 pub mod res;
 pub mod scene;
 pub mod task_counter;

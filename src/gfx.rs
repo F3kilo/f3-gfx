@@ -1,10 +1,11 @@
 use crate::back::{Backend, GeomId, RenderError, TexId};
 use crate::deferred_task::{DeferredTask, DeferredTaskStorage};
+use crate::geom::GeomRemover;
 use crate::res::Resource;
 use crate::scene::Scene;
 use crate::task_counter::TaskCounter;
 use crate::tex::TexRemover;
-use crate::{tex, LoadResult};
+use crate::{geom, tex, LoadResult};
 use std::future::Future;
 use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, Sender};
@@ -36,8 +37,8 @@ impl Gfx {
     }
 
     pub fn load_tex(&mut self, path: PathBuf, result_sender: Sender<LoadResult<Tex>>) {
-        log::trace!("Start load tex: {:?}", path);
         self.perform_deferred_tasks();
+        log::trace!("Start load tex: {:?}", path);
         let tex_storage = self.back.get_tex_storage();
         let remover = Box::new(TexRemover::new(self.deferred_tasks.pusher()));
         let load_task = tex::load_async(path, tex_storage, remover);
@@ -45,13 +46,16 @@ impl Gfx {
         self.spawn_task(task);
     }
 
-    // pub fn load_geom(&self, path: PathBuf) -> ReceiveOnce<GeomReceiver> {
-    //     log::trace!("Start load geom: {:?}", path);
-    //     let (tx, rx) = mpsc::channel();
-    //     let _ = self.task_tx.send(Box::new(LoadGeom::new(path, tx)));
-    //     ReceiveOnce::new(rx)
-    // }
-    //
+    pub fn load_geom(&mut self, path: PathBuf, result_sender: Sender<LoadResult<Geom>>) {
+        self.perform_deferred_tasks();
+        log::trace!("Start load geom: {:?}", path);
+        let geom_storage = self.back.get_geom_storage();
+        let remover = Box::new(GeomRemover::new(self.deferred_tasks.pusher()));
+        let load_task = geom::load_async(path, geom_storage, remover);
+        let task = load_task.then_send_result(result_sender);
+        self.spawn_task(task);
+    }
+
     // pub fn render(&self, scene: Scene, render_info: RenderInfo) -> ReceiveOnce<RenderReceiver> {
     //     log::trace!("Start render");
     //     let (tx, rx) = mpsc::channel();
@@ -84,10 +88,12 @@ impl Gfx {
     }
 
     fn perform_deferred_tasks(&mut self) {
+        log::trace!("Performing deferred task");
         while let Some(task) = self.deferred_tasks.next() {
             log::trace!("Performing deferred task: {:?}", task);
             match task {
                 DeferredTask::RemoveTex(id) => self.remove_tex(id),
+                DeferredTask::RemoveGeom(id) => self.remove_geom(id),
             }
         }
     }
@@ -95,6 +101,11 @@ impl Gfx {
     fn remove_tex(&mut self, id: TexId) {
         let tex_storage = self.back.get_tex_storage();
         self.spawn_task(tex::remove_async(id, tex_storage))
+    }
+
+    fn remove_geom(&mut self, id: GeomId) {
+        let geom_storage = self.back.get_geom_storage();
+        self.spawn_task(geom::remove_async(id, geom_storage))
     }
 }
 

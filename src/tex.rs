@@ -1,8 +1,9 @@
 use crate::back::{StoreTex, TexId};
 use crate::deferred_task::{DeferredTask, DeferredTaskPusher};
 use crate::gfx::Tex;
+use crate::read::read_tex;
 use crate::res::Remove;
-use crate::{read_tex, LoadResult};
+use crate::LoadResult;
 use std::path::PathBuf;
 
 pub struct TexRemover(DeferredTaskPusher);

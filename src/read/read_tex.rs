@@ -1,9 +1,8 @@
 use crate::back::TexData;
+use crate::read::{ReadError, ReadResult};
 use log::{trace, warn};
-use std::error::Error;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
-use std::{fmt, io};
 
 pub async fn read(path: PathBuf) -> ReadResult<TexData> {
     trace!("Start reading texture file: {:?}", path);
@@ -41,27 +40,8 @@ fn extension_not_specified(path: &Path) -> ReadError {
     ReadError(format!("Extension is not specified: {:?}", path))
 }
 
-pub type ReadResult<T> = Result<T, ReadError>;
-
-#[derive(Debug, Clone)]
-pub struct ReadError(String);
-
-impl Error for ReadError {}
-
-impl fmt::Display for ReadError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Read failed: {}", self.0)
-    }
-}
-
 impl From<ktx2_reader::error::ReadError> for ReadError {
     fn from(e: ktx2_reader::error::ReadError) -> Self {
         Self(format!("Can't read .ktx2 texture: {}", e))
-    }
-}
-
-impl From<io::Error> for ReadError {
-    fn from(e: io::Error) -> Self {
-        ktx2_reader::error::ReadError::IoError(e).into()
     }
 }

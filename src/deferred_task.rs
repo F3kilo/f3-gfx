@@ -1,10 +1,11 @@
-use crate::back::TexId;
+use crate::back::{TexId, GeomId};
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{mpsc, Arc, Mutex};
 
 #[derive(Debug)]
 pub enum DeferredTask {
     RemoveTex(TexId),
+    RemoveGeom(GeomId),
 }
 
 pub struct DeferredTaskStorage {
