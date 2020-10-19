@@ -13,6 +13,7 @@ pub mod res;
 pub mod scene;
 pub mod task_counter;
 pub mod tex;
+pub mod async_tasker;
 
 #[cfg(test)]
 mod tests {
