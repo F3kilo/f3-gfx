@@ -9,7 +9,8 @@ edition = "2018"
 [dependencies]
 async-trait = "0.1.41"
 log = "0.4.11"
+ktx2-reader = "0.1.2"
 
 [dependencies.tokio]
-version = "0.3.0"
-features = ["rt-multi-thread", "time", "fs"]
+version = "0.2.22"
+features = ["rt-core", "time"]

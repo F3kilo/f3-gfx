@@ -1,5 +1,5 @@
-use futures_util::core_reexport::fmt::{Debug, Formatter};
 use std::fmt;
+use std::fmt::Debug;
 use std::sync::Arc;
 
 #[derive(Clone, Debug)]
@@ -8,7 +8,7 @@ pub struct Resource<Res: Debug + Copy> {
 }
 
 impl<Res: Debug + Copy> Debug for UniqueResource<Res> {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.res.fmt(f)
     }
 }

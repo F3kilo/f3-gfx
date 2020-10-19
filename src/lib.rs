@@ -1,4 +1,8 @@
-use crate::back::{ReadError, WriteError};
+#![allow(dead_code)]
+#![allow(unused_variables)]
+
+use crate::back::WriteError;
+use crate::read_tex::ReadError;
 
 pub mod back;
 pub mod gfx;
@@ -6,6 +10,7 @@ mod read_tex;
 pub mod res;
 pub mod scene;
 pub mod task_counter;
+pub mod deferred_task;
 
 #[cfg(test)]
 mod tests {

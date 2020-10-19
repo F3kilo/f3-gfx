@@ -45,6 +45,7 @@ impl From<u64> for GeomId {
 
 pub type ReadResult<T> = Result<T, ReadError>;
 
+#[derive(Debug)]
 pub enum ReadError {
     NotFound,
     CantRead(&'static str),
