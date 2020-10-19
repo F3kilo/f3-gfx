@@ -1,9 +1,11 @@
-use crate::back::{Backend, GeomId, RenderError, StoreTex, TexId};
-use crate::deferred_task::{DeferredTask, DeferredTaskPusher, DeferredTaskStorage};
-use crate::res::{Remove, Resource};
+use crate::back::{Backend, GeomId, RenderError, TexId};
+use crate::deferred_task::{DeferredTask, DeferredTaskStorage};
+use crate::res::Resource;
 use crate::scene::Scene;
 use crate::task_counter::TaskCounter;
-use crate::{read_tex, LoadResult};
+use crate::tex::TexRemover;
+use crate::{tex, LoadResult};
+use std::future::Future;
 use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, Sender};
 use tokio::runtime::Runtime;
@@ -35,9 +37,12 @@ impl Gfx {
 
     pub fn load_tex(&mut self, path: PathBuf, result_sender: Sender<LoadResult<Tex>>) {
         log::trace!("Start load tex: {:?}", path);
+        self.perform_deferred_tasks();
         let tex_storage = self.back.get_tex_storage();
-        let remover = Box::new(self.deferred_tasks.pusher());
-        self.spawn_task_and_send(load_tex_async(path, tex_storage, remover), result_sender);
+        let remover = Box::new(TexRemover::new(self.deferred_tasks.pusher()));
+        let load_task = tex::load_async(path, tex_storage, remover);
+        let task = load_task.then_send_result(result_sender);
+        self.spawn_task(task);
     }
 
     // pub fn load_geom(&self, path: PathBuf) -> ReceiveOnce<GeomReceiver> {
@@ -55,39 +60,41 @@ impl Gfx {
     //     ReceiveOnce::new(rx)
     // }
 
-    fn spawn_task_and_send<T: Send + 'static>(
-        &mut self,
-        task: impl std::future::Future<Output = T> + Send + 'static,
-        result_sender: Sender<T>,
-    ) {
-        let task = async move {
-            let result = task.await;
-            let _ = result_sender.send(result);
-        };
+    // async fn and_send_result<F>(task: F, result_sender: Sender<F::Output>)
+    // where
+    //     F: Future + Send + 'static,
+    //     F::Output: Send + 'static,
+    // {
+    //     let task = async move {
+    //         let result = task.await;
+    //         let _ = result_sender.send(result);
+    //     };
+    // }
 
-        self.spawn_task(task)
-    }
-
-    fn spawn_task(&mut self, task: impl std::future::Future<Output = ()> + Send + 'static) {
-        self.perform_deferred_tasks();
-
+    fn spawn_task<F>(&mut self, task: F)
+    where
+        F: Future + Send + 'static,
+    {
         self.task_counter.inc();
         let mut task_counter = self.task_counter.clone();
         self.rt.spawn(async move {
-            let result = task.await;
+            task.await;
             task_counter.dec();
         });
     }
 
     fn perform_deferred_tasks(&mut self) {
         while let Some(task) = self.deferred_tasks.next() {
+            log::trace!("Performing deferred task: {:?}", task);
             match task {
-                DeferredTask::RemoveTex(id) => {
-                    let tex_storage = self.back.get_tex_storage();
-                    self.spawn_task(remove_tex_async(id, tex_storage))
-                }
+                DeferredTask::RemoveTex(id) => self.remove_tex(id),
             }
         }
+    }
+
+    fn remove_tex(&mut self, id: TexId) {
+        let tex_storage = self.back.get_tex_storage();
+        self.spawn_task(tex::remove_async(id, tex_storage))
     }
 }
 
@@ -100,24 +107,23 @@ type GeomReceiver = Receiver<LoadResult<Geom>>;
 pub type RenderResult = Result<Tex, RenderError>;
 pub type RenderReceiver = Receiver<(RenderResult, Scene)>;
 
-impl Remove for DeferredTaskPusher {
-    type Resource = TexId;
+#[async_trait::async_trait]
+trait SendResult {
+    type Result;
 
-    fn remove(&mut self, res: Self::Resource) {
-        self.push(DeferredTask::RemoveTex(res))
+    async fn then_send_result(self, result_sender: Sender<Self::Result>);
+}
+
+#[async_trait::async_trait]
+impl<F> SendResult for F
+where
+    F: Future + Send + 'static,
+    F::Output: Send + 'static,
+{
+    type Result = F::Output;
+
+    async fn then_send_result(self, result_sender: Sender<Self::Result>) {
+        let result = self.await;
+        let _ = result_sender.send(result);
     }
-}
-
-async fn load_tex_async(
-    path: PathBuf,
-    mut tex_storage: Box<dyn StoreTex>,
-    remover: Box<dyn Remove<Resource = TexId>>,
-) -> LoadResult<Tex> {
-    let data = read_tex::read(path).await?;
-    let id = tex_storage.write(data).await?;
-    Ok(Tex::new(id, remover))
-}
-
-async fn remove_tex_async(id: TexId, mut tex_storage: Box<dyn StoreTex>) {
-    tex_storage.remove(id).await
 }

@@ -2,6 +2,7 @@ use crate::back::TexId;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{mpsc, Arc, Mutex};
 
+#[derive(Debug)]
 pub enum DeferredTask {
     RemoveTex(TexId),
 }

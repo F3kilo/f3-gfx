@@ -5,12 +5,13 @@ use crate::back::WriteError;
 use crate::read_tex::ReadError;
 
 pub mod back;
+pub mod deferred_task;
 pub mod gfx;
 mod read_tex;
 pub mod res;
 pub mod scene;
 pub mod task_counter;
-pub mod deferred_task;
+pub mod tex;
 
 #[cfg(test)]
 mod tests {
