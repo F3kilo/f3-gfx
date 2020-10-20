@@ -1,5 +1,6 @@
 use crate::back::{GeomId, TexId};
 use crate::gfx::{Geom, Tex};
+use crate::waiter::Setter;
 use crate::LoadResult;
 use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, Sender};
@@ -7,9 +8,9 @@ use std::sync::{mpsc, Arc, Mutex};
 
 #[derive(Debug)]
 pub enum DeferredTask {
-    LoadTex(PathBuf, Sender<LoadResult<Tex>>),
+    LoadTex(PathBuf, Setter<LoadResult<Tex>>),
     RemoveTex(TexId),
-    LoadGeom(PathBuf, Sender<LoadResult<Geom>>),
+    LoadGeom(PathBuf, Setter<LoadResult<Geom>>),
     RemoveGeom(GeomId),
 }
 

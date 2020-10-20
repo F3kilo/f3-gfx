@@ -1,6 +1,6 @@
 use crate::task_counter::TaskCounter;
+use crate::waiter::Setter;
 use std::future::Future;
-use std::sync::mpsc::Sender;
 use tokio::runtime::Runtime;
 
 pub struct AsyncTasker {
@@ -35,19 +35,19 @@ impl AsyncTasker {
 pub trait SendResult {
     type Result;
 
-    async fn then_send_result(self, result_sender: Sender<Self::Result>);
+    async fn then_set_result(self, setter: Setter<Self::Result>);
 }
 
 #[async_trait::async_trait]
 impl<F> SendResult for F
 where
     F: Future + Send + 'static,
-    F::Output: Send + 'static,
+    F::Output: Send + Sync + 'static,
 {
     type Result = F::Output;
 
-    async fn then_send_result(self, result_sender: Sender<Self::Result>) {
+    async fn then_set_result(self, mut setter: Setter<Self::Result>) {
         let result = self.await;
-        let _ = result_sender.send(result);
+        setter.set(result);
     }
 }

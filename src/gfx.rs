@@ -3,13 +3,10 @@ use crate::back::{Backend, GeomId, RenderError, TexId};
 use crate::deferred_task::{DeferredTask, DeferredTaskStorage, TaskPusher};
 use crate::geom::GeomRemover;
 use crate::res::Resource;
-use crate::scene::Scene;
 use crate::tex::TexRemover;
-use crate::waiter::ReceiveOnce;
+use crate::waiter::{Setter, Wait};
 use crate::{geom, tex, LoadResult};
 use std::path::PathBuf;
-use std::sync::mpsc;
-use std::sync::mpsc::{Receiver, Sender};
 
 pub struct Gfx {
     back: Box<dyn Backend>,
@@ -36,21 +33,21 @@ impl Gfx {
         todo!("reload all data to new back")
     }
 
-    fn load_tex(&mut self, path: PathBuf, result_sender: Sender<LoadResult<Tex>>) {
+    fn load_tex(&mut self, path: PathBuf, result_setter: Setter<LoadResult<Tex>>) {
         log::trace!("Start load tex: {:?}", path);
         let tex_storage = self.back.get_tex_storage();
         let remover = Box::new(TexRemover::new(self.deferred_tasks.pusher()));
         let load_task = tex::load_async(path, tex_storage, remover);
-        let task = load_task.then_send_result(result_sender);
+        let task = load_task.then_set_result(result_setter);
         self.tasker.spawn_task(task);
     }
 
-    fn load_geom(&mut self, path: PathBuf, result_sender: Sender<LoadResult<Geom>>) {
+    fn load_geom(&mut self, path: PathBuf, result_setter: Setter<LoadResult<Geom>>) {
         log::trace!("Start load geom: {:?}", path);
         let geom_storage = self.back.get_geom_storage();
         let remover = Box::new(GeomRemover::new(self.deferred_tasks.pusher()));
         let load_task = geom::load_async(path, geom_storage, remover);
-        let task = load_task.then_send_result(result_sender);
+        let task = load_task.then_set_result(result_setter);
         self.tasker.spawn_task(task);
     }
 
@@ -79,27 +76,22 @@ impl Gfx {
 }
 
 pub type Tex = Resource<TexId>;
-type TexReceiver = Receiver<LoadResult<Tex>>;
-
 pub type Geom = Resource<GeomId>;
-type GeomReceiver = Receiver<LoadResult<Geom>>;
-
 pub type RenderResult = Result<Tex, RenderError>;
-pub type RenderReceiver = Receiver<(RenderResult, Scene)>;
 
 #[derive(Clone)]
 pub struct Loader(TaskPusher);
 
 impl Loader {
-    pub fn load_tex(&self, path: PathBuf) -> ReceiveOnce<TexReceiver> {
-        let (tx, rx) = mpsc::channel();
-        self.0.push(DeferredTask::LoadTex(path, tx));
-        ReceiveOnce::new(rx)
+    pub fn load_tex(&self, path: PathBuf) -> Wait<LoadResult<Tex>> {
+        let (waiter, setter) = Wait::new();
+        self.0.push(DeferredTask::LoadTex(path, setter));
+        waiter
     }
 
-    pub fn load_geom(&self, path: PathBuf) -> ReceiveOnce<GeomReceiver> {
-        let (tx, rx) = mpsc::channel();
-        self.0.push(DeferredTask::LoadGeom(path, tx));
-        ReceiveOnce::new(rx)
+    pub fn load_geom(&self, path: PathBuf) -> Wait<LoadResult<Geom>> {
+        let (waiter, setter) = Wait::new();
+        self.0.push(DeferredTask::LoadGeom(path, setter));
+        waiter
     }
 }

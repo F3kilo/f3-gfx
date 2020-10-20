@@ -53,7 +53,7 @@ pub enum ReadError {
 
 pub type WriteResult<T> = Result<T, WriteError>;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct WriteError;
 
 pub struct TexData {}

@@ -27,7 +27,7 @@ mod tests {
 pub type LoadResult<T> = Result<T, LoadError>;
 pub type WriteResult<T> = Result<T, WriteError>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum LoadError {
     ReadError(ReadError),
     WriteError(WriteError),

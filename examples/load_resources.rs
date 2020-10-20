@@ -18,13 +18,13 @@ fn main() {
     let geom_path = geom_path();
     let loader = gfx.loader();
 
-    let mut t0 = loader.load_tex(tex_path.clone());
-    let mut g0 = loader.load_geom(geom_path.clone());
+    let t0 = loader.load_tex(tex_path.clone());
+    let g0 = loader.load_geom(geom_path.clone());
 
     gfx.perform_deferred_tasks();
 
-    let mut t1 = loader.load_tex(tex_path);
-    let mut g1 = loader.load_geom(geom_path);
+    let t1 = loader.load_tex(tex_path);
+    let g1 = loader.load_geom(geom_path);
 
     thread::sleep(Duration::from_secs(1));
 

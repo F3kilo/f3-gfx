@@ -1,60 +1,45 @@
+use once_cell::sync::OnceCell;
 use std::error::Error;
-use std::fmt;
 use std::fmt::Debug;
-use std::sync::mpsc::{Receiver, RecvError, TryRecvError};
+use std::sync::Arc;
+use std::{fmt, thread};
+use tokio::time::Duration;
 
-pub struct ReceiveOnce<Recv> {
-    recv: Option<Recv>,
+#[derive(Clone, Debug)]
+pub struct Wait<T> {
+    recv: Arc<OnceCell<T>>,
 }
 
-impl<Recv: Receive> ReceiveOnce<Recv> {
-    pub fn new(rx: Recv) -> Self {
-        Self { recv: Some(rx) }
+impl<T: Debug + Clone + Send + Sync> Wait<T> {
+    pub fn new() -> (Self, Setter<T>) {
+        let cell = Arc::new(OnceCell::new());
+        (Self { recv: cell.clone() }, Setter(cell))
     }
 
-    pub fn try_take(&mut self) -> TakeResult<Recv::Item> {
-        if let Some(r) = &mut self.recv {
-            let received = r.try_take()?;
-            log::trace!("Taking resource: {:?}", received);
-            self.recv = None;
-            return Ok(received);
+    pub fn try_take(&self) -> TakeResult<T> {
+        log::trace!("Trying to take item");
+        if let Some(got) = self.recv.get() {
+            return Ok(got.clone());
         }
-        Err(already_taken_error())
+        Err(TakeError::NotReady)
     }
 
-    pub fn wait(&mut self) -> TakeResult<Recv::Item> {
-        if let Some(r) = &mut self.recv {
-            let received = r.wait()?;
-            log::trace!("Taking resource after wait: {:?}", received);
-            self.recv = None;
-            return Ok(received);
+    pub fn wait(&self) -> T {
+        log::trace!("Waiting for item");
+        loop {
+            thread::sleep(Duration::from_millis(5));
+            if let Some(got) = self.recv.get() {
+                return got.clone();
+            }
         }
-        Err(already_taken_error())
     }
+
+    // todo: wait with timeout and delay
 }
 
 fn already_taken_error() -> TakeError {
     log::warn!("Try to take already taken resource");
     TakeError::AlreadyTaken
-}
-
-pub trait Receive {
-    type Item: Debug;
-
-    fn try_take(&mut self) -> TakeResult<Self::Item>;
-    fn wait(&mut self) -> TakeResult<Self::Item>;
-}
-
-impl<T: Debug> Receive for Receiver<T> {
-    type Item = T;
-
-    fn try_take(&mut self) -> TakeResult<Self::Item> {
-        Ok(self.try_recv()?)
-    }
-
-    fn wait(&mut self) -> TakeResult<Self::Item> {
-        Ok(self.recv()?)
-    }
 }
 
 pub type TakeResult<T> = Result<T, TakeError>;
@@ -78,17 +63,13 @@ impl fmt::Display for TakeError {
     }
 }
 
-impl From<TryRecvError> for TakeError {
-    fn from(e: TryRecvError) -> Self {
-        match e {
-            TryRecvError::Empty => Self::NotReady,
-            TryRecvError::Disconnected => Self::NotAvailable,
-        }
-    }
-}
+#[derive(Debug)]
+pub struct Setter<T>(Arc<OnceCell<T>>);
 
-impl From<RecvError> for TakeError {
-    fn from(e: RecvError) -> Self {
-        Self::NotAvailable
+impl<T: Send + Sync> Setter<T> {
+    pub fn set(&mut self, val: T) {
+        if let Err(e) = self.0.set(val) {
+            log::warn!("Try to set value to already full Setter")
+        }
     }
 }
