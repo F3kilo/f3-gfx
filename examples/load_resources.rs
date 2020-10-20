@@ -2,7 +2,6 @@ use crate::common::dummy_back::DummyBack;
 use f3_gfx::gfx::Gfx;
 use log::{trace, LevelFilter};
 use std::path::PathBuf;
-use std::sync::mpsc::channel;
 use std::thread;
 use tokio::time::Duration;
 
@@ -19,21 +18,25 @@ fn main() {
     let geom_path = geom_path();
     let loader = gfx.loader();
 
-    loader.load(tex_path.clone());
-    gfx.load_geom(geom_path.clone(), tx);
+    let mut t0 = loader.load_tex(tex_path.clone());
+    let mut g0 = loader.load_geom(geom_path.clone());
+
+    gfx.perform_deferred_tasks();
+
+    let mut t1 = loader.load_tex(tex_path);
+    let mut g1 = loader.load_geom(geom_path);
 
     thread::sleep(Duration::from_secs(1));
 
     {
-        let _t0 = trx0.recv().unwrap().unwrap();
-        let _g0 = grx0.recv().unwrap().unwrap();
+        let _t0 = t0.wait().unwrap();
+        let _g0 = g0.wait().unwrap();
     }
 
-    gfx.load_tex(tex_path, tx);
-    gfx.load_geom(geom_path, tx);
+    gfx.perform_deferred_tasks();
 
-    let _t1 = trx1.recv().unwrap().unwrap();
-    let _g1 = grx1.recv().unwrap().unwrap();
+    let _t1 = t1.wait().unwrap();
+    let _g1 = g1.wait().unwrap();
 }
 
 pub fn tex_path() -> PathBuf {
