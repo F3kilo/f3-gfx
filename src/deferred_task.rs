@@ -1,10 +1,11 @@
-use crate::back::{GeomId, TexId};
-use crate::gfx::{Geom, Tex};
+use crate::back::{GeomId, TexId, RenderInfo};
+use crate::gfx::{Geom, Tex, RenderResult};
 use crate::waiter::Setter;
 use crate::LoadResult;
 use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{mpsc, Arc, Mutex};
+use crate::scene::Scene;
 
 #[derive(Debug)]
 pub enum DeferredTask {
@@ -12,6 +13,7 @@ pub enum DeferredTask {
     RemoveTex(TexId),
     LoadGeom(PathBuf, Setter<LoadResult<Geom>>),
     RemoveGeom(GeomId),
+    Render(Scene, RenderInfo, Setter<RenderResult>)
 }
 
 pub struct DeferredTaskStorage {

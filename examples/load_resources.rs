@@ -1,5 +1,6 @@
 use crate::common::dummy_back::DummyBack;
 use f3_gfx::gfx::Gfx;
+use f3_gfx::scene::Scene;
 use log::{trace, LevelFilter};
 use std::path::PathBuf;
 use std::thread;
@@ -17,6 +18,7 @@ fn main() {
     let tex_path = tex_path();
     let geom_path = geom_path();
     let loader = gfx.loader();
+    let renderer = gfx.renderer();
 
     let t0 = loader.load_tex(tex_path.clone());
     let g0 = loader.load_geom(geom_path.clone());

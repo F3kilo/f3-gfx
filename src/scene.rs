@@ -1,7 +1,7 @@
 use crate::back::GeomId;
 use crate::gfx::Geom;
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct Scene {
     items: Vec<SceneItem>,
 }
@@ -16,12 +16,12 @@ impl Scene {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum SceneItem {
     ColorGeom(ColorGeom),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ColorGeom {
     geom: Geom,
     instances: Vec<Instance>,
@@ -41,5 +41,5 @@ impl ColorGeom {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Instance {}

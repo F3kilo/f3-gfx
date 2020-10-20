@@ -61,12 +61,12 @@ pub struct GeomData {}
 
 #[async_trait]
 pub trait Render: Send {
-    async fn render(&mut self, scene: &Scene, render_info: RenderInfo) -> RenderResult;
+    async fn render(&mut self, scene: &Scene, info: RenderInfo) -> RenderResult;
 }
 
 pub type RenderResult = Result<TexId, RenderError>;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum RenderError {
     NotEnoughMemory,
 }
