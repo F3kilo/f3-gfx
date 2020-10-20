@@ -17,10 +17,9 @@ fn main() {
     let mut gfx = Gfx::new(back);
     let tex_path = tex_path();
     let geom_path = geom_path();
+    let loader = gfx.loader();
 
-    let (tx, trx0) = channel();
-    gfx.load_tex(tex_path.clone(), tx);
-    let (tx, grx0) = channel();
+    loader.load(tex_path.clone());
     gfx.load_geom(geom_path.clone(), tx);
 
     thread::sleep(Duration::from_secs(1));
@@ -30,9 +29,7 @@ fn main() {
         let _g0 = grx0.recv().unwrap().unwrap();
     }
 
-    let (tx, trx1) = channel();
     gfx.load_tex(tex_path, tx);
-    let (tx, grx1) = channel();
     gfx.load_geom(geom_path, tx);
 
     let _t1 = trx1.recv().unwrap().unwrap();

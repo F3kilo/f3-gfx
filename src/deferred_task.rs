@@ -1,10 +1,15 @@
-use crate::back::{TexId, GeomId};
+use crate::back::{GeomId, TexId};
+use crate::gfx::{Geom, Tex};
+use crate::LoadResult;
+use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{mpsc, Arc, Mutex};
 
 #[derive(Debug)]
 pub enum DeferredTask {
+    LoadTex(PathBuf, Sender<LoadResult<Tex>>),
     RemoveTex(TexId),
+    LoadGeom(PathBuf, Sender<LoadResult<Geom>>),
     RemoveGeom(GeomId),
 }
 
@@ -14,8 +19,8 @@ pub struct DeferredTaskStorage {
 }
 
 impl DeferredTaskStorage {
-    pub fn pusher(&self) -> DeferredTaskPusher {
-        DeferredTaskPusher(Arc::new(Mutex::new(self.tx.clone())))
+    pub fn pusher(&self) -> TaskPusher {
+        TaskPusher(Arc::new(Mutex::new(self.tx.clone())))
     }
 
     pub fn next(&self) -> Option<DeferredTask> {
@@ -31,9 +36,9 @@ impl Default for DeferredTaskStorage {
 }
 
 #[derive(Clone)]
-pub struct DeferredTaskPusher(Arc<Mutex<Sender<DeferredTask>>>);
+pub struct TaskPusher(Arc<Mutex<Sender<DeferredTask>>>);
 
-impl DeferredTaskPusher {
+impl TaskPusher {
     pub fn push(&self, task: DeferredTask) {
         self.0
             .lock()

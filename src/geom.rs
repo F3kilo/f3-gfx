@@ -1,15 +1,15 @@
 use crate::back::{GeomId, StoreGeom};
-use crate::deferred_task::{DeferredTask, DeferredTaskPusher};
+use crate::deferred_task::{DeferredTask, TaskPusher};
 use crate::gfx::Geom;
 use crate::read::read_geom;
 use crate::res::Remove;
 use crate::LoadResult;
 use std::path::PathBuf;
 
-pub struct GeomRemover(DeferredTaskPusher);
+pub struct GeomRemover(TaskPusher);
 
 impl GeomRemover {
-    pub fn new(pusher: DeferredTaskPusher) -> Self {
+    pub fn new(pusher: TaskPusher) -> Self {
         Self(pusher)
     }
 }

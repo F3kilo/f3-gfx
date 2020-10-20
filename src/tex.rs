@@ -1,15 +1,15 @@
 use crate::back::{StoreTex, TexId};
-use crate::deferred_task::{DeferredTask, DeferredTaskPusher};
+use crate::deferred_task::{DeferredTask, TaskPusher};
 use crate::gfx::Tex;
 use crate::read::read_tex;
 use crate::res::Remove;
 use crate::LoadResult;
 use std::path::PathBuf;
 
-pub struct TexRemover(DeferredTaskPusher);
+pub struct TexRemover(TaskPusher);
 
 impl TexRemover {
-    pub fn new(pusher: DeferredTaskPusher) -> Self {
+    pub fn new(pusher: TaskPusher) -> Self {
         Self(pusher)
     }
 }
