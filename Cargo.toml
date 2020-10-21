@@ -18,3 +18,7 @@ features = ["rt-threaded", "time"]
 
 [dev-dependencies]
 env_logger = "0.8.1"
+vulkano = "0.19.0"
+vulkano-win = "0.19.0"
+vulkano-shaders = "0.19.0"
+winit = "0.22.0"
