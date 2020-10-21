@@ -5,7 +5,7 @@ use crate::geom::GeomRemover;
 use crate::res::Resource;
 use crate::scene::Scene;
 use crate::tex::TexRemover;
-use crate::waiter::{Setter, Wait};
+use crate::waiter::{Getter, Setter};
 use crate::{geom, tex, LoadResult};
 use std::path::PathBuf;
 
@@ -104,20 +104,20 @@ pub type RenderResult = (Result<Tex, RenderError>, Scene);
 pub struct Loader(TaskPusher);
 
 impl Loader {
-    pub fn load_tex(&self, path: PathBuf) -> Wait<LoadResult<Tex>> {
-        let (waiter, setter) = Wait::new();
+    pub fn load_tex(&self, path: PathBuf) -> Getter<LoadResult<Tex>> {
+        let (waiter, setter) = Getter::new();
         self.0.push(DeferredTask::LoadTex(path, setter));
         waiter
     }
 
-    pub fn load_geom(&self, path: PathBuf) -> Wait<LoadResult<Geom>> {
-        let (waiter, setter) = Wait::new();
+    pub fn load_geom(&self, path: PathBuf) -> Getter<LoadResult<Geom>> {
+        let (waiter, setter) = Getter::new();
         self.0.push(DeferredTask::LoadGeom(path, setter));
         waiter
     }
 
-    pub fn render(&self, scene: Scene, info: RenderInfo) -> Wait<RenderResult> {
-        let (result_waiter, result_setter) = Wait::new();
+    pub fn render(&self, scene: Scene, info: RenderInfo) -> Getter<RenderResult> {
+        let (result_waiter, result_setter) = Getter::new();
         self.0
             .push(DeferredTask::Render(scene, info, result_setter));
         result_waiter
@@ -128,8 +128,8 @@ impl Loader {
 pub struct Renderer(TaskPusher);
 
 impl Renderer {
-    pub fn render(&self, scene: Scene, info: RenderInfo) -> Wait<RenderResult> {
-        let (result_waiter, result_setter) = Wait::new();
+    pub fn render(&self, scene: Scene, info: RenderInfo) -> Getter<RenderResult> {
+        let (result_waiter, result_setter) = Getter::new();
         self.0
             .push(DeferredTask::Render(scene, info, result_setter));
         result_waiter

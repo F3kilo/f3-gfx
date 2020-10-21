@@ -41,5 +41,5 @@ impl ColorGeom {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Instance {}

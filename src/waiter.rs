@@ -1,64 +1,59 @@
 use once_cell::sync::OnceCell;
 use std::error::Error;
+use std::fmt;
 use std::fmt::Debug;
 use std::sync::Arc;
-use std::{fmt, thread};
-use tokio::time::Duration;
 
 #[derive(Clone, Debug)]
-pub struct Wait<T> {
-    recv: Arc<OnceCell<T>>,
+pub struct Getter<T> {
+    cell: Arc<OnceCell<T>>,
 }
 
-impl<T: Debug + Clone + Send + Sync> Wait<T> {
+impl<T: Debug + Send + Sync> Getter<T> {
     pub fn new() -> (Self, Setter<T>) {
         let cell = Arc::new(OnceCell::new());
-        (Self { recv: cell.clone() }, Setter(cell))
+        let setter_cell = cell.clone();
+        (Self { cell }, Setter(setter_cell))
     }
 
-    pub fn try_take(&self) -> TakeResult<T> {
+    pub fn try_get(&self) -> TakeResult<&T> {
         log::trace!("Trying to take item");
-        if let Some(got) = self.recv.get() {
-            return Ok(got.clone());
+        if let Some(got) = self.cell.get() {
+            return Ok(got);
         }
         Err(TakeError::NotReady)
     }
 
-    pub fn wait(&self) -> T {
-        log::trace!("Waiting for item");
-        loop {
-            thread::sleep(Duration::from_millis(5));
-            if let Some(got) = self.recv.get() {
-                return got.clone();
-            }
+    pub fn try_take(self) -> TakeResult<T> {
+        log::trace!("Trying to take item");
+
+        if self.cell.get().is_some() {
+            let inner = Arc::try_unwrap(self.cell);
+            return match inner {
+                Ok(mut cell) => Ok(cell.take().unwrap()), // Can unwrap, because outer 'if'
+                Err(arc) => Err(TakeError::CantTake(Self { cell: arc })),
+            };
         }
+
+        Err(TakeError::NotReady)
     }
-
-    // todo: wait with timeout and delay
 }
 
-fn already_taken_error() -> TakeError {
-    log::warn!("Try to take already taken resource");
-    TakeError::AlreadyTaken
-}
-
-pub type TakeResult<T> = Result<T, TakeError>;
+pub type TakeResult<T> = Result<T, TakeError<Getter<T>>>;
 
 #[derive(Debug)]
-pub enum TakeError {
+pub enum TakeError<G> {
     NotReady,
-    NotAvailable,
-    AlreadyTaken,
+    CantTake(G),
 }
 
-impl Error for TakeError {}
+impl<G: Debug> Error for TakeError<G> {}
 
-impl fmt::Display for TakeError {
+impl<G> fmt::Display for TakeError<G> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match &self {
             TakeError::NotReady => write!(f, "Resource is not ready"),
-            TakeError::NotAvailable => write!(f, "Resource is not available"),
-            TakeError::AlreadyTaken => write!(f, "Resource is already taken"),
+            TakeError::CantTake(_) => write!(f, "Can't take value because another getter exist"),
         }
     }
 }
