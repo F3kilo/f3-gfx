@@ -1,8 +1,8 @@
 use crate::common::id_counter;
 use async_trait::async_trait;
 use f3_gfx::back::{
-    Backend, GeomData, GeomId, ReadError, ReadResult, Render, RenderInfo, RenderResult, StoreGeom,
-    StoreResource, StoreTex, TexData, TexId, WriteResult,
+    Backend, GeomData, GeomId, Present, PresentInfo, ReadError, ReadResult, Render, RenderInfo,
+    RenderResult, StoreGeom, StoreResource, StoreTex, TexData, TexId, WriteResult,
 };
 use f3_gfx::scene::Scene;
 use std::fmt::Debug;
@@ -26,6 +26,10 @@ impl Backend for DummyBack {
 
     fn get_renderer(&mut self) -> Box<dyn Render> {
         Box::new(Renderer::new(self.tex_storage.clone()))
+    }
+
+    fn get_presenter(&mut self) -> Box<dyn Present> {
+        Box::new(Presenter {})
     }
 }
 
@@ -135,5 +139,14 @@ impl Render for Renderer {
         let d = TexData {};
         let tex = self.tex_storage.write(d).await.unwrap();
         Ok(tex)
+    }
+}
+
+struct Presenter {}
+
+#[async_trait]
+impl Present for Presenter {
+    async fn present(&mut self, scene: &Scene, _present_info: PresentInfo) {
+        log::trace!("Presenting scene: {:?}", scene)
     }
 }

@@ -7,6 +7,7 @@ pub trait Backend: Send {
     fn get_tex_storage(&mut self) -> Box<dyn StoreTex>;
     fn get_geom_storage(&mut self) -> Box<dyn StoreGeom>;
     fn get_renderer(&mut self) -> Box<dyn Render>;
+    fn get_presenter(&mut self) -> Box<dyn Present>;
 }
 
 #[async_trait]
@@ -83,3 +84,34 @@ impl fmt::Display for RenderError {
 
 #[derive(Debug)]
 pub struct RenderInfo {}
+
+#[async_trait]
+pub trait Present: Send {
+    async fn present(&mut self, scene: &Scene, info: PresentInfo);
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum PresentError {
+    RenderError(RenderError),
+}
+
+impl Error for PresentError {}
+
+impl fmt::Display for PresentError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match &self {
+            PresentError::RenderError(e) => write!(f, "Can't render: {}", e),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct PresentInfo {
+    render_info: RenderInfo,
+}
+
+impl PresentInfo {
+    pub fn new(render_info: RenderInfo) -> Self {
+        Self { render_info }
+    }
+}

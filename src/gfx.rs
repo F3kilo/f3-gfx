@@ -1,5 +1,5 @@
 use crate::async_tasker::{AsyncTasker, SendResult};
-use crate::back::{Backend, GeomId, RenderError, RenderInfo, TexId};
+use crate::back::{Backend, GeomId, PresentInfo, RenderError, RenderInfo, TexId};
 use crate::deferred_task::{DeferredTask, DeferredTaskStorage, TaskPusher};
 use crate::geom::GeomRemover;
 use crate::res::Resource;
@@ -32,6 +32,15 @@ impl Gfx {
 
     pub fn renderer(&self) -> Renderer {
         Renderer(self.deferred_tasks.pusher())
+    }
+
+    pub fn start_present(&mut self, scene: Scene, info: PresentInfo) -> Getter<Scene> {
+        let (result_waiter, result_setter) = Getter::new();
+        self.deferred_tasks
+            .pusher()
+            .push(DeferredTask::Present(scene, info, result_setter));
+        self.perform_deferred_tasks();
+        result_waiter
     }
 
     pub fn replace_back(&mut self, back: Box<dyn Backend>) {
@@ -71,6 +80,17 @@ impl Gfx {
         self.tasker.spawn_task(task);
     }
 
+    fn present(&mut self, scene: Scene, info: PresentInfo, result_setter: Setter<Scene>) {
+        log::trace!("Start rendering scene: {:?}", scene);
+        let mut presenter = self.back.get_presenter();
+        let render_task = async move {
+            let render_result = presenter.present(&scene, info).await;
+            scene
+        };
+        let task = render_task.then_set_result(result_setter);
+        self.tasker.spawn_task(task);
+    }
+
     pub fn perform_deferred_tasks(&mut self) {
         log::trace!("Performing deferred tasks");
         while let Some(task) = self.deferred_tasks.next() {
@@ -81,6 +101,7 @@ impl Gfx {
                 DeferredTask::LoadTex(path, tx) => self.load_tex(path, tx),
                 DeferredTask::LoadGeom(path, tx) => self.load_geom(path, tx),
                 DeferredTask::Render(sc, info, res_set) => self.render(sc, info, res_set),
+                DeferredTask::Present(sc, info, res_set) => self.present(sc, info, res_set),
             }
         }
     }

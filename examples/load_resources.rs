@@ -1,5 +1,5 @@
 use crate::common::dummy_back::DummyBack;
-use f3_gfx::back::RenderInfo;
+use f3_gfx::back::{PresentInfo, RenderInfo};
 use f3_gfx::gfx::Gfx;
 use f3_gfx::scene::{ColorGeom, Instance, Scene, SceneItem};
 use log::LevelFilter;
@@ -48,8 +48,10 @@ fn main() {
     let render_result = renderer.render(scene, RenderInfo {});
     gfx.perform_deferred_tasks();
     thread::sleep(Duration::from_secs(1));
-    let (mb_tex, _scene) = render_result.try_take().unwrap();
+    let (mb_tex, scene) = render_result.try_take().unwrap();
     let _rendered = mb_tex.unwrap();
+
+    gfx.start_present(scene, PresentInfo::new(RenderInfo {}));
 }
 
 pub fn tex_path() -> PathBuf {

@@ -1,11 +1,11 @@
-use crate::back::{GeomId, TexId, RenderInfo};
-use crate::gfx::{Geom, Tex, RenderResult};
+use crate::back::{GeomId, PresentInfo, RenderInfo, TexId};
+use crate::gfx::{Geom, RenderResult, Tex};
+use crate::scene::Scene;
 use crate::waiter::Setter;
 use crate::LoadResult;
 use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{mpsc, Arc, Mutex};
-use crate::scene::Scene;
 
 #[derive(Debug)]
 pub enum DeferredTask {
@@ -13,7 +13,8 @@ pub enum DeferredTask {
     RemoveTex(TexId),
     LoadGeom(PathBuf, Setter<LoadResult<Geom>>),
     RemoveGeom(GeomId),
-    Render(Scene, RenderInfo, Setter<RenderResult>)
+    Render(Scene, RenderInfo, Setter<RenderResult>),
+    Present(Scene, PresentInfo, Setter<Scene>),
 }
 
 pub struct DeferredTaskStorage {
@@ -47,6 +48,11 @@ impl TaskPusher {
             .lock()
             .expect("DeferredTaskPusher sender mutex is poisoned")
             .send(task)
-            .expect("DeferredTaskPusher sender can't send task");
+            .unwrap_or_else(|e| {
+                log::trace!(
+                    "Can't send task: {:?}, because DeferredTask has been dropped already.",
+                    e.0
+                )
+            });
     }
 }
