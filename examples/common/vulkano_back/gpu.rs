@@ -1,8 +1,9 @@
 use crate::common::vulkano_back::presenter::Presenter;
 use std::sync::Arc;
+use vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
 use vulkano::device::{Device, DeviceExtensions, Queue};
 use vulkano::format::Format;
-use vulkano::framebuffer::{RenderPass, RenderPassAbstract, RenderPassDesc, Subpass};
+use vulkano::framebuffer::{RenderPassAbstract, RenderPassDesc, Subpass};
 use vulkano::instance::{Instance, PhysicalDevice};
 use vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
 use vulkano::swapchain::Surface;
@@ -16,6 +17,7 @@ pub struct Gpu {
     render_pass: Arc<Box<dyn RenderPassAbstract + Send + Sync>>,
     pipeline: Arc<Box<dyn GraphicsPipelineAbstract + Send + Sync>>,
     presenter: Presenter,
+    vertex_buffer: Arc<CpuAccessibleBuffer<[Vertex]>>,
 }
 
 impl Gpu {
@@ -64,6 +66,8 @@ impl Gpu {
             render_pass.clone(),
         );
 
+        let vertex_buffer = Self::create_vertex_buffer(device.clone());
+
         Self {
             instance,
             surface,
@@ -72,6 +76,7 @@ impl Gpu {
             render_pass,
             pipeline,
             presenter,
+            vertex_buffer,
         }
     }
 
@@ -122,12 +127,6 @@ impl Gpu {
         let vs = vs::Shader::load(device.clone()).unwrap();
         let fs = fs::Shader::load(device.clone()).unwrap();
 
-        #[derive(Default, Debug, Clone)]
-        struct Vertex {
-            position: [f32; 2],
-        }
-        vulkano::impl_vertex!(Vertex, position);
-
         Arc::new(Box::new(
             GraphicsPipeline::start()
                 // We need to indicate the layout of the vertices.
@@ -152,7 +151,24 @@ impl Gpu {
                 .unwrap(),
         ))
     }
+
+    fn create_vertex_buffer(device: Arc<Device>) -> Arc<CpuAccessibleBuffer<[Vertex]>> {
+        let vertices = [Vertex::default(); 1000];
+        CpuAccessibleBuffer::from_iter(
+            device,
+            BufferUsage::vertex_buffer_transfer_destination(),
+            false,
+            vertices.iter().cloned(),
+        )
+        .unwrap()
+    }
 }
+
+#[derive(Default, Debug, Clone, Copy)]
+struct Vertex {
+    position: [f32; 3],
+}
+vulkano::impl_vertex!(Vertex, position);
 
 mod vs {
     vulkano_shaders::shader! {
@@ -160,10 +176,10 @@ mod vs {
         src: "
 				#version 450
 
-				layout(location = 0) in vec2 position;
+				layout(location = 0) in vec3 position;
 
 				void main() {
-					gl_Position = vec4(position, 0.0, 1.0);
+					gl_Position = vec4(position, 1.0);
 				}
 			"
     }
