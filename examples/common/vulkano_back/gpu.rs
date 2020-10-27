@@ -153,7 +153,7 @@ impl Gpu {
     }
 
     fn create_vertex_buffer(device: Arc<Device>) -> Arc<CpuAccessibleBuffer<[Vertex]>> {
-        let vertices = [Vertex::default(); 1000];
+        let vertices = [Vertex::default(); 10000];
         CpuAccessibleBuffer::from_iter(
             device,
             BufferUsage::vertex_buffer_transfer_destination(),
