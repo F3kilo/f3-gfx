@@ -1,5 +1,6 @@
+use crate::common::vulkano_back::cpu_buf::CpuBuffer;
+use crate::common::vulkano_back::geom_buf::{GeomBuffer, ColVert};
 use crate::common::vulkano_back::presenter::Presenter;
-use crate::common::vulkano_back::vert_buf::{Vertex, VertexBuffer};
 use std::sync::Arc;
 use vulkano::device::{Device, DeviceExtensions, Queue};
 use vulkano::format::Format;
@@ -17,7 +18,7 @@ pub struct Gpu {
     render_pass: Arc<Box<dyn RenderPassAbstract + Send + Sync>>,
     pipeline: Arc<Box<dyn GraphicsPipelineAbstract + Send + Sync>>,
     presenter: Presenter,
-    vertex_buffer: VertexBuffer,
+    geom_buffer: GeomBuffer,
 }
 
 impl Gpu {
@@ -66,7 +67,7 @@ impl Gpu {
             render_pass.clone(),
         );
 
-        let vertex_buffer = VertexBuffer::new(device.clone());
+        let geom_buffer = GeomBuffer::new(device.clone());
 
         Self {
             instance,
@@ -76,7 +77,7 @@ impl Gpu {
             render_pass,
             pipeline,
             presenter,
-            vertex_buffer,
+            geom_buffer,
         }
     }
 
@@ -129,7 +130,7 @@ impl Gpu {
 
         Arc::new(Box::new(
             GraphicsPipeline::start()
-                .vertex_input_single_buffer::<Vertex>()
+                .vertex_input_single_buffer::<ColVert>()
                 .vertex_shader(vs.main_entry_point(), ())
                 .triangle_list()
                 .viewports_dynamic_scissors_irrelevant(1)

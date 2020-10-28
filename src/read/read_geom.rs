@@ -10,7 +10,10 @@ pub async fn read(path: PathBuf) -> ReadResult<GeomData> {
         let str = ext.to_string_lossy().into_owned();
 
         return match str.deref() {
-            "fbx" => Ok(GeomData {}), // TODO: read fbx geometry data
+            "fbx" => Ok(GeomData {
+                vertices: vec![],
+                indices: vec![],
+            }), // TODO: read fbx geometry data
             ext => Err(extension_not_supported(&path)),
         };
     }

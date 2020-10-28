@@ -58,7 +58,15 @@ pub type WriteResult<T> = Result<T, WriteError>;
 pub struct WriteError;
 
 pub struct TexData {}
-pub struct GeomData {}
+pub struct GeomData {
+    pub indices: Vec<u32>,
+    pub vertices: Vec<ColVert>,
+}
+
+pub struct ColVert {
+    pub position: [f32; 3],
+    pub color: [f32; 4],
+}
 
 #[async_trait]
 pub trait Render: Send {
