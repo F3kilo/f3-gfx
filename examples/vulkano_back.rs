@@ -1,9 +1,10 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+
 mod common;
 
 use crate::common::vulkano_back::VulkanoBack;
 use f3_gfx::gfx::Gfx;
-use std::thread;
-use tokio::time::Duration;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::ControlFlow;
 use f3_gfx::back::{GeomData, ColVert};

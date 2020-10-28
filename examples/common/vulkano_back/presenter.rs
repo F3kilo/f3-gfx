@@ -1,9 +1,7 @@
 use std::sync::Arc;
 use vulkano::command_buffer::DynamicState;
 use vulkano::device::{Device, Queue};
-use vulkano::framebuffer::{
-    Framebuffer, FramebufferAbstract, RenderPass, RenderPassAbstract, RenderPassDesc,
-};
+use vulkano::framebuffer::{Framebuffer, FramebufferAbstract, RenderPassAbstract};
 use vulkano::image::{ImageUsage, SwapchainImage};
 use vulkano::pipeline::viewport::Viewport;
 use vulkano::swapchain::{
@@ -14,7 +12,7 @@ use winit::window::Window;
 pub struct Presenter {
     swapchain: Arc<Swapchain<Window>>,
     images: Vec<Arc<SwapchainImage<Window>>>,
-    framebuffers: Vec<Arc<dyn FramebufferAbstract + Send + Sync>>
+    framebuffers: Vec<Arc<dyn FramebufferAbstract + Send + Sync>>,
 }
 
 impl Presenter {
@@ -24,7 +22,7 @@ impl Presenter {
         queue: Arc<Queue>,
         render_pass: Arc<dyn RenderPassAbstract + Send + Sync>,
     ) -> Self {
-        let (mut swapchain, images) = {
+        let (swapchain, images) = {
             let caps = surface.capabilities(device.physical_device()).unwrap();
             let alpha = caps.supported_composite_alpha.iter().next().unwrap();
             let format = caps.supported_formats[0].0;
@@ -61,7 +59,11 @@ impl Presenter {
         let framebuffers =
             Self::init_framebuffers(&images, render_pass.clone(), &mut dynamic_state);
 
-        Self { swapchain, images, framebuffers }
+        Self {
+            swapchain,
+            images,
+            framebuffers,
+        }
     }
 
     pub fn swapchain(&self) -> &Arc<Swapchain<Window>> {
@@ -71,7 +73,7 @@ impl Presenter {
     pub fn images(&self) -> &Vec<Arc<SwapchainImage<Window>>> {
         &self.images
     }
-    
+
     fn init_framebuffers(
         images: &[Arc<SwapchainImage<Window>>],
         render_pass: Arc<dyn RenderPassAbstract + Send + Sync>,

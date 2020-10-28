@@ -5,9 +5,7 @@ use f3_gfx::back::{
 };
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use std::thread;
 use subranges::interval::Interval;
-use tokio::time::Duration;
 use vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
 use vulkano::device::Device;
 
