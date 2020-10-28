@@ -1,9 +1,13 @@
 use crate::common::id_counter::get_unique_id;
 use crate::common::vulkano_back::cpu_buf::CpuBuffer;
-use f3_gfx::back::{GeomData, GeomId};
+use f3_gfx::back::{
+    GeomData, GeomId, ReadError, ReadResult, StoreGeom, StoreResource, WriteError, WriteResult,
+};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use std::thread;
 use subranges::interval::Interval;
+use tokio::time::Duration;
 use vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
 use vulkano::device::Device;
 
@@ -13,6 +17,7 @@ type IndexId = u64;
 pub const MAX_VERTEX_COUNT: usize = 10000;
 pub const MAX_INDEX_COUNT: usize = 10000;
 
+#[derive(Clone)]
 pub struct GeomBuffer {
     verts: CpuBuffer<ColVert>,
     indices: CpuBuffer<u32>,
@@ -60,7 +65,7 @@ impl GeomBuffer {
         None
     }
 
-    pub fn get_geom_data(&self, id: GeomId) -> Option<GeomData> {
+    pub fn read_data(&self, id: GeomId) -> Option<GeomData> {
         if let Some((v_id, i_id)) = self.ids.lock().unwrap().get(&id) {
             let v_data = self.verts.get_data(*v_id).unwrap();
             let i_data = self.indices.get_data(*i_id).unwrap();
@@ -78,6 +83,14 @@ impl GeomBuffer {
             self.verts.remove(v_id);
             self.indices.remove(i_id);
         }
+    }
+
+    pub fn contains(&self, id: GeomId) -> bool {
+        self.ids.lock().unwrap().contains_key(&id)
+    }
+
+    pub fn ids(&self) -> Vec<GeomId> {
+        self.ids.lock().unwrap().keys().copied().collect()
     }
 
     fn create_vertex_buffer(device: Arc<Device>) -> Arc<CpuAccessibleBuffer<[ColVert]>> {
@@ -133,3 +146,37 @@ impl From<ColVert> for f3_gfx::back::ColVert {
         }
     }
 }
+
+#[async_trait::async_trait]
+impl StoreResource for GeomBuffer {
+    type Id = GeomId;
+    type Data = GeomData;
+
+    async fn write(&mut self, data: Self::Data) -> WriteResult<Self::Id> {
+        match GeomBuffer::write(&self, data) {
+            Some(id) => Ok(id),
+            None => Err(WriteError),
+        }
+    }
+
+    async fn read(&self, id: Self::Id) -> ReadResult<Self::Data> {
+        match self.read_data(id) {
+            Some(id) => Ok(id),
+            None => Err(ReadError::NotFound),
+        }
+    }
+
+    async fn remove(&mut self, id: Self::Id) {
+        GeomBuffer::remove(&self, id)
+    }
+
+    fn contains(&self, id: Self::Id) -> bool {
+        GeomBuffer::contains(&self, id)
+    }
+
+    fn list(&self) -> Vec<Self::Id> {
+        self.ids()
+    }
+}
+
+impl StoreGeom for GeomBuffer {}

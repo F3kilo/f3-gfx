@@ -1,4 +1,3 @@
-use crate::common::vulkano_back::cpu_buf::CpuBuffer;
 use crate::common::vulkano_back::geom_buf::{GeomBuffer, ColVert};
 use crate::common::vulkano_back::presenter::Presenter;
 use std::sync::Arc;
@@ -97,6 +96,10 @@ impl Gpu {
         &self.queue
     }
 
+    pub fn geom_buffer(&self) -> GeomBuffer {
+        self.geom_buffer.clone()
+    }
+
     fn create_render_pass(
         device: Arc<Device>,
         format: Format,
@@ -149,9 +152,13 @@ mod vs {
 				#version 450
 
 				layout(location = 0) in vec3 position;
+				layout(location = 1) in vec4 color;
+
+                layout (location = 0) out vec4 out_color;
 
 				void main() {
 					gl_Position = vec4(position, 1.0);
+					out_color = color;
 				}
 			"
     }
@@ -163,10 +170,12 @@ mod fs {
         src: "
 				#version 450
 
+                layout(location = 0) in vec4 color;
+
 				layout(location = 0) out vec4 f_color;
 
 				void main() {
-					f_color = vec4(1.0, 0.0, 0.0, 1.0);
+					f_color = color;
 				}
 			"
     }

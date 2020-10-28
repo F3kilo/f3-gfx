@@ -5,6 +5,7 @@ use subranges::interval::Interval;
 use subranges::Subranges;
 use vulkano::buffer::{CpuAccessibleBuffer, TypedBufferAccess};
 
+#[derive(Clone)]
 pub struct CpuBuffer<T> {
     buffer: Arc<CpuAccessibleBuffer<[T]>>,
     buffer_intervals: Arc<Mutex<BufferIntervals>>,

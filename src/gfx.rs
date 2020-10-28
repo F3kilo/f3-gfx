@@ -1,5 +1,5 @@
 use crate::async_tasker::{AsyncTasker, SendResult};
-use crate::back::{Backend, GeomId, PresentInfo, RenderError, RenderInfo, TexId};
+use crate::back::{Backend, GeomId, PresentInfo, RenderError, RenderInfo, TexId, GeomData};
 use crate::deferred_task::{DeferredTask, DeferredTaskStorage, TaskPusher};
 use crate::geom::GeomRemover;
 use crate::res::Resource;
@@ -100,6 +100,7 @@ impl Gfx {
                 DeferredTask::RemoveGeom(id) => self.remove_geom(id),
                 DeferredTask::LoadTex(path, tx) => self.load_tex(path, tx),
                 DeferredTask::LoadGeom(path, tx) => self.load_geom(path, tx),
+                DeferredTask::LoadGeomData(data, tx) => self.load_geom_data(data, tx),
                 DeferredTask::Render(sc, info, res_set) => self.render(sc, info, res_set),
                 DeferredTask::Present(sc, info, res_set) => self.present(sc, info, res_set),
             }
@@ -114,6 +115,14 @@ impl Gfx {
     fn remove_geom(&mut self, id: GeomId) {
         let geom_storage = self.back.get_geom_storage();
         self.tasker.spawn_task(geom::remove_async(id, geom_storage))
+    }
+    fn load_geom_data(&mut self, data: GeomData, result_setter: Setter<LoadResult<Geom>>) {
+        log::trace!("Start load geom from data");
+        let geom_storage = self.back.get_geom_storage();
+        let remover = Box::new(GeomRemover::new(self.deferred_tasks.pusher()));
+        let load_task = geom::load_from_data_async(data, geom_storage, remover);
+        let task = load_task.then_set_result(result_setter);
+        self.tasker.spawn_task(task);
     }
 }
 
@@ -136,7 +145,13 @@ impl Loader {
         self.0.push(DeferredTask::LoadGeom(path, setter));
         waiter
     }
-
+    
+    pub fn load_geom_from_data(&self, data: GeomData) -> Getter<LoadResult<Geom>> {
+        let (waiter, setter) = Getter::new();
+        self.0.push(DeferredTask::LoadGeomData(data, setter));
+        waiter
+    }
+    
     pub fn render(&self, scene: Scene, info: RenderInfo) -> Getter<RenderResult> {
         let (result_waiter, result_setter) = Getter::new();
         self.0

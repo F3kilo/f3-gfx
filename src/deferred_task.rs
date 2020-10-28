@@ -1,4 +1,4 @@
-use crate::back::{GeomId, PresentInfo, RenderInfo, TexId};
+use crate::back::{GeomId, PresentInfo, RenderInfo, TexId, GeomData};
 use crate::gfx::{Geom, RenderResult, Tex};
 use crate::scene::Scene;
 use crate::waiter::Setter;
@@ -12,6 +12,7 @@ pub enum DeferredTask {
     LoadTex(PathBuf, Setter<LoadResult<Tex>>),
     RemoveTex(TexId),
     LoadGeom(PathBuf, Setter<LoadResult<Geom>>),
+    LoadGeomData(GeomData, Setter<LoadResult<Geom>>),
     RemoveGeom(GeomId),
     Render(Scene, RenderInfo, Setter<RenderResult>),
     Present(Scene, PresentInfo, Setter<Scene>),

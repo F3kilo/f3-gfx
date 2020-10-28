@@ -58,11 +58,14 @@ pub type WriteResult<T> = Result<T, WriteError>;
 pub struct WriteError;
 
 pub struct TexData {}
+
+#[derive(Debug)]
 pub struct GeomData {
     pub indices: Vec<u32>,
     pub vertices: Vec<ColVert>,
 }
 
+#[derive(Debug)]
 pub struct ColVert {
     pub position: [f32; 3],
     pub color: [f32; 4],

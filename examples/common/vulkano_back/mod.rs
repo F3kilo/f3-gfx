@@ -40,7 +40,7 @@ impl Backend for VulkanoBack {
     }
 
     fn get_geom_storage(&mut self) -> Box<dyn StoreGeom> {
-        unimplemented!()
+        Box::new(self.gpu.geom_buffer())
     }
 
     fn get_renderer(&mut self) -> Box<dyn Render> {

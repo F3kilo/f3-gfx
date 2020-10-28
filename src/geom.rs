@@ -1,4 +1,4 @@
-use crate::back::{GeomId, StoreGeom};
+use crate::back::{GeomId, StoreGeom, GeomData};
 use crate::deferred_task::{DeferredTask, TaskPusher};
 use crate::gfx::Geom;
 use crate::read::read_geom;
@@ -24,10 +24,18 @@ impl Remove for GeomRemover {
 
 pub async fn load_async(
     path: PathBuf,
-    mut geom_storage: Box<dyn StoreGeom>,
+    geom_storage: Box<dyn StoreGeom>,
     remover: Box<dyn Remove<Resource = GeomId>>,
 ) -> LoadResult<Geom> {
     let data = read_geom::read(path).await?;
+    load_from_data_async(data, geom_storage, remover).await
+}
+
+pub async fn load_from_data_async(
+    data: GeomData,
+    mut geom_storage: Box<dyn StoreGeom>,
+    remover: Box<dyn Remove<Resource = GeomId>>,
+) -> LoadResult<Geom> {
     let id = geom_storage.write(data).await?;
     Ok(Geom::new(id, remover))
 }
