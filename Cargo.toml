@@ -11,6 +11,7 @@ async-trait = "0.1.41"
 log = "0.4.11"
 ktx2-reader = "0.1.2"
 once_cell = "1.4.1"
+palette = "0.5.0"
 
 [dependencies.tokio]
 version = "0.2.22"
@@ -18,8 +19,3 @@ features = ["rt-threaded", "time"]
 
 [dev-dependencies]
 env_logger = "0.8.1"
-vulkano = "0.19.0"
-vulkano-win = "0.19.0"
-vulkano-shaders = "0.19.0"
-winit = "0.22.0"
-subranges = "0.1.0"

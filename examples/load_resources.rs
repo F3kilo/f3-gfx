@@ -1,7 +1,7 @@
 use crate::common::dummy_back::DummyBack;
 use f3_gfx::back::{PresentInfo, RenderInfo};
 use f3_gfx::gfx::Gfx;
-use f3_gfx::scene::{ColorGeom, Instance, Scene, SceneItem};
+use f3_gfx::scene::{ColorGeom, Instance, Scene};
 use log::LevelFilter;
 use std::path::PathBuf;
 use std::thread;
