@@ -8,6 +8,7 @@ use vulkano::instance::{Instance, PhysicalDevice};
 use vulkano::pipeline::{GraphicsPipeline, GraphicsPipelineAbstract};
 use vulkano::swapchain::Surface;
 use winit::window::Window;
+use crate::common::vulkano_back::renderer::Renderer;
 
 pub struct Gpu {
     instance: Arc<Instance>,

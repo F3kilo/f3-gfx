@@ -3,16 +3,16 @@ use crate::gfx::Geom;
 
 #[derive(Default, Debug, Clone)]
 pub struct Scene {
-    items: Vec<SceneItem>,
+    color_geoms: Vec<ColorGeom>
 }
 
 impl Scene {
-    pub fn iter(&self) -> impl Iterator<Item = &SceneItem> {
-        self.items.iter()
+    pub fn color_geoms(&self) -> impl Iterator<Item = &ColorGeom> {
+        self.color_geoms.iter()
     }
 
-    pub fn add_item(&mut self, item: SceneItem) {
-        self.items.push(item)
+    pub fn add_color_geom(&mut self, item: ColorGeom) {
+        self.color_geoms.push(item)
     }
 }
 

@@ -135,8 +135,8 @@ impl Renderer {
 #[async_trait]
 impl Render for Renderer {
     async fn render(&mut self, scene: &Scene, _render_info: RenderInfo) -> RenderResult {
-        for item in scene.iter() {
-            log::trace!("Rendering item: {:?}", item);
+        for item in scene.color_geoms() {
+            log::trace!("Rendering color geometries: {:?}", item);
         }
 
         let d = TexData {};

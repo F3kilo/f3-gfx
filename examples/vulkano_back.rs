@@ -8,8 +8,12 @@ use f3_gfx::gfx::Gfx;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::ControlFlow;
 use f3_gfx::back::{GeomData, ColVert};
+use log::LevelFilter;
 
 fn main() {
+    env_logger::builder()
+        .filter_level(LevelFilter::max())
+        .init();
     let event_loop = winit::event_loop::EventLoop::new();
     let back = VulkanoBack::new(&event_loop);
     let mut gfx = Gfx::new(Box::new(back));
@@ -17,7 +21,7 @@ fn main() {
     gfx.perform_deferred_tasks();
 
     event_loop.run(move |event, _, control_flow| {
-        println!("Triangle: {:?}", triangle_getter.try_get());
+        // println!("Triangle: {:?}", triangle_getter.try_get());
 
         *control_flow = ControlFlow::Poll;
 

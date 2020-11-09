@@ -2,6 +2,7 @@ pub mod cpu_buf;
 pub mod geom_buf;
 pub mod gpu;
 pub mod presenter;
+pub mod renderer;
 
 use crate::common::vulkano_back::gpu::Gpu;
 use f3_gfx::back::*;

@@ -44,7 +44,7 @@ fn main() {
     let mut scene = Scene::default();
 
     let instances = vec![Instance::default(), Instance::default()];
-    scene.add_item(SceneItem::ColorGeom(ColorGeom::new(_g1, instances)));
+    scene.add_color_geom(ColorGeom::new(_g1, instances));
     let render_result = renderer.render(scene, RenderInfo {});
     gfx.perform_deferred_tasks();
     thread::sleep(Duration::from_secs(1));
