@@ -2,6 +2,7 @@ use crate::scene::Scene;
 use async_trait::async_trait;
 use std::error::Error;
 use std::fmt;
+use palette::rgb::Rgba;
 
 pub trait Backend: Send {
     fn get_tex_storage(&mut self) -> Box<dyn StoreTex>;
@@ -94,7 +95,17 @@ impl fmt::Display for RenderError {
 }
 
 #[derive(Debug)]
-pub struct RenderInfo {}
+pub struct RenderInfo {
+    pub size: RenderSize,
+    pub background : Rgba,
+    pub ambient: Rgba
+}
+
+#[derive(Debug)]
+pub enum RenderSize {
+    FromSurface,
+    Custom(i32, i32),
+}
 
 #[async_trait]
 pub trait Present: Send {
