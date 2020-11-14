@@ -1,8 +1,8 @@
 use crate::scene::Scene;
 use async_trait::async_trait;
+use palette::rgb::Rgba;
 use std::error::Error;
 use std::fmt;
-use palette::rgb::Rgba;
 
 pub trait Backend: Send {
     fn get_tex_storage(&mut self) -> Box<dyn StoreTex>;
@@ -58,6 +58,7 @@ pub type WriteResult<T> = Result<T, WriteError>;
 #[derive(Debug, Copy, Clone)]
 pub struct WriteError;
 
+#[derive(Debug)]
 pub struct TexData {}
 
 #[derive(Debug)]
@@ -97,8 +98,8 @@ impl fmt::Display for RenderError {
 #[derive(Debug)]
 pub struct RenderInfo {
     pub size: RenderSize,
-    pub background : Rgba,
-    pub ambient: Rgba
+    pub background: Rgba,
+    pub ambient: Rgba,
 }
 
 #[derive(Debug)]

@@ -2,16 +2,17 @@ use crate::task_counter::TaskCounter;
 use crate::waiter::Setter;
 use std::future::Future;
 use tokio::runtime::Runtime;
+use std::sync::Arc;
 
 pub struct AsyncTasker {
-    rt: Runtime,
+    rt: Arc<Runtime>,
     task_counter: TaskCounter,
 }
 
 impl Default for AsyncTasker {
     fn default() -> Self {
         Self {
-            rt: Runtime::new().unwrap(),
+            rt: Arc::new(Runtime::new().unwrap()),
             task_counter: TaskCounter::default(),
         }
     }
@@ -28,6 +29,10 @@ impl AsyncTasker {
             task.await;
             task_counter.dec();
         });
+    }
+    
+    pub fn get_runtime(&self) -> Arc<Runtime> {
+        self.rt.clone()
     }
 }
 

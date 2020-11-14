@@ -2,19 +2,20 @@
 #![allow(unused_variables)]
 
 use crate::back::WriteError;
-use crate::read::ReadError;
+use crate::data_src::TakeError;
 
 pub mod async_tasker;
 pub mod back;
-pub mod deferred_task;
+pub mod job_stor;
 pub mod geom;
 pub mod gfx;
-pub mod read;
 pub mod res;
 pub mod scene;
 pub mod task_counter;
 pub mod tex;
 pub mod waiter;
+pub mod job;
+pub mod data_src;
 
 #[cfg(test)]
 mod tests {
@@ -27,15 +28,15 @@ mod tests {
 pub type LoadResult<T> = Result<T, LoadError>;
 pub type WriteResult<T> = Result<T, WriteError>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum LoadError {
-    ReadError(ReadError),
+    TakeError(TakeError),
     WriteError(WriteError),
 }
 
-impl From<ReadError> for LoadError {
-    fn from(e: ReadError) -> Self {
-        Self::ReadError(e)
+impl From<TakeError> for LoadError {
+    fn from(e: TakeError) -> Self {
+        Self::TakeError(e)
     }
 }
 
@@ -44,3 +45,4 @@ impl From<WriteError> for LoadError {
         Self::WriteError(e)
     }
 }
+

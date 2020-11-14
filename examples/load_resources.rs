@@ -24,12 +24,12 @@ fn main() {
     let t0 = loader.load_tex(tex_path.clone());
     let g0 = loader.load_geom(geom_path.clone());
 
-    gfx.perform_deferred_tasks();
+    gfx.start_jobs();
 
     let t1 = loader.load_tex(tex_path);
     let g1 = loader.load_geom(geom_path);
 
-    gfx.perform_deferred_tasks();
+    gfx.start_jobs();
 
     thread::sleep(Duration::from_secs(1));
 
@@ -46,7 +46,7 @@ fn main() {
     let instances = vec![Instance::default(), Instance::default()];
     scene.add_color_geom(ColorGeom::new(_g1, instances));
     let render_result = renderer.render(scene, RenderInfo {});
-    gfx.perform_deferred_tasks();
+    gfx.start_jobs();
     thread::sleep(Duration::from_secs(1));
     let (mb_tex, scene) = render_result.try_take().unwrap();
     let _rendered = mb_tex.unwrap();

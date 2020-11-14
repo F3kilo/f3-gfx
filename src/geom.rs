@@ -1,16 +1,19 @@
-use crate::back::{GeomId, StoreGeom, GeomData};
-use crate::deferred_task::{DeferredTask, TaskPusher};
+use crate::async_tasker::{AsyncTasker, SendResult};
+use crate::back::{Backend, GeomData, GeomId};
+use crate::data_src::{JoinData, TakeResult};
 use crate::gfx::Geom;
-use crate::read::read_geom;
+use crate::job::{Job, OnceData};
+use crate::job_stor::SyncJobSender;
 use crate::res::Remove;
+use crate::waiter::Setter;
 use crate::LoadResult;
-use std::path::PathBuf;
+use tokio::task::JoinHandle;
 
-pub struct GeomRemover(TaskPusher);
+pub struct GeomRemover(SyncJobSender);
 
 impl GeomRemover {
-    pub fn new(pusher: TaskPusher) -> Self {
-        Self(pusher)
+    pub fn new(job_sender: SyncJobSender) -> Self {
+        Self(job_sender)
     }
 }
 
@@ -18,28 +21,80 @@ impl Remove for GeomRemover {
     type Resource = GeomId;
 
     fn remove(&mut self, res: Self::Resource) {
-        self.0.push(DeferredTask::RemoveGeom(res))
+        self.0.send(Box::new(RemoveGeomJob::new(res)));
     }
 }
 
-pub async fn load_async(
-    path: PathBuf,
-    geom_storage: Box<dyn StoreGeom>,
-    remover: Box<dyn Remove<Resource = GeomId>>,
-) -> LoadResult<Geom> {
-    let data = read_geom::read(path).await?;
-    load_from_data_async(data, geom_storage, remover).await
+pub type LoadingGeomData = JoinHandle<TakeResult<GeomData>>;
+
+#[derive(Debug)]
+pub struct LoadJobData {
+    loading_geom_data: LoadingGeomData,
+    job_sender: SyncJobSender,
+    result_setter: Setter<LoadResult<Geom>>,
 }
 
-pub async fn load_from_data_async(
-    data: GeomData,
-    mut geom_storage: Box<dyn StoreGeom>,
-    remover: Box<dyn Remove<Resource = GeomId>>,
-) -> LoadResult<Geom> {
-    let id = geom_storage.write(data).await?;
-    Ok(Geom::new(id, remover))
+#[derive(Debug)]
+pub struct LoadGeomJob {
+    data: OnceData<LoadJobData>,
 }
 
-pub async fn remove_async(id: GeomId, mut geom_storage: Box<dyn StoreGeom>) {
-    geom_storage.remove(id).await
+impl LoadGeomJob {
+    pub fn new(
+        loading_geom_data: LoadingGeomData,
+        job_sender: SyncJobSender,
+        result_setter: Setter<LoadResult<Geom>>,
+    ) -> Self {
+        let job_data = LoadJobData {
+            loading_geom_data,
+            job_sender,
+            result_setter,
+        };
+        Self {
+            data: job_data.into(),
+        }
+    }
+}
+
+impl Job for LoadGeomJob {
+    fn start(&mut self, tasker: &mut AsyncTasker, back: &mut Box<dyn Backend>) {
+        log::trace!("Start load geom");
+        let data = self.data.take();
+        let loading_geom_data = data.loading_geom_data;
+        let mut geom_storage = back.get_geom_storage();
+        let remover = Box::new(GeomRemover::new(data.job_sender));
+        let load_task = async move {
+            let data = loading_geom_data.join_data().await?;
+            let id = geom_storage.write(data).await?;
+            Ok(Geom::new(id, remover))
+        };
+        let task = load_task.then_set_result(data.result_setter);
+        tasker.spawn_task(task);
+    }
+}
+
+#[derive(Debug)]
+pub struct RemoveJobData {
+    geom_id: GeomId,
+}
+
+#[derive(Debug)]
+pub struct RemoveGeomJob {
+    data: OnceData<RemoveJobData>,
+}
+
+impl RemoveGeomJob {
+    pub fn new(geom_id: GeomId) -> Self {
+        Self {
+            data: RemoveJobData { geom_id }.into(),
+        }
+    }
+}
+
+impl Job for RemoveGeomJob {
+    fn start(&mut self, tasker: &mut AsyncTasker, back: &mut Box<dyn Backend>) {
+        let geom_id = self.data.take().geom_id;
+        let mut geom_storage = back.get_geom_storage();
+        tasker.spawn_task(async move { geom_storage.remove(geom_id).await });
+    }
 }
