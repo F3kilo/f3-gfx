@@ -49,15 +49,6 @@ impl Gfx {
         todo!("reload all data to new back")
     }
 
-    // fn load_geom(&mut self, path: PathBuf, result_setter: Setter<LoadResult<Geom>>) {
-    //     log::trace!("Start load geom: {:?}", path);
-    //     let geom_storage = self.back.get_geom_storage();
-    //     let remover = Box::new(GeomRemover::new(self.deferred_tasks.pusher()));
-    //     let load_task = geom::load_async(path, geom_storage, remover);
-    //     let task = load_task.then_set_result(result_setter);
-    //     self.tasker.spawn_task(task);
-    // }
-    //
     // fn render(&mut self, scene: Scene, info: RenderInfo, result_setter: Setter<RenderResult>) {
     //     log::trace!("Start rendering scene: {:?}", scene);
     //     let mut renderer = self.back.get_renderer();
