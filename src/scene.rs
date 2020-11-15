@@ -1,5 +1,5 @@
 use crate::back::GeomId;
-use crate::gfx::Geom;
+use crate::geom::Geom;
 
 #[derive(Default, Debug, Clone)]
 pub struct Scene {

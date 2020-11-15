@@ -16,6 +16,8 @@ pub mod tex;
 pub mod waiter;
 pub mod job;
 pub mod data_src;
+pub mod render;
+pub mod present;
 
 #[cfg(test)]
 mod tests {

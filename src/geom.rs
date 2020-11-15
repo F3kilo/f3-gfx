@@ -1,13 +1,15 @@
 use crate::async_tasker::{AsyncTasker, SendResult};
 use crate::back::{Backend, GeomData, GeomId};
 use crate::data_src::{JoinData, TakeResult};
-use crate::gfx::Geom;
 use crate::job::{Job, OnceData};
 use crate::job_stor::SyncJobSender;
-use crate::res::Remove;
+use crate::res::{Remove, Resource};
 use crate::waiter::Setter;
 use crate::LoadResult;
 use tokio::task::JoinHandle;
+
+pub type Geom = Resource<GeomId>;
+
 
 pub struct GeomRemover(SyncJobSender);
 

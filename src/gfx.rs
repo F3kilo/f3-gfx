@@ -1,13 +1,13 @@
 use crate::async_tasker::AsyncTasker;
-use crate::back::{
-    Backend, GeomData, GeomId, PresentInfo, RenderError, RenderInfo, TexData, TexId,
-};
+use crate::back::{Backend, GeomData, PresentInfo, RenderInfo, TexData};
 use crate::data_src::DataSource;
-use crate::geom::LoadGeomJob;
+use crate::geom::{Geom, LoadGeomJob};
+use crate::job::Job;
 use crate::job_stor::{JobSender, JobsStorage};
-use crate::res::Resource;
+use crate::present::PresentJob;
+use crate::render::{RenderJob, RenderResult};
 use crate::scene::Scene;
-use crate::tex::LoadTexJob;
+use crate::tex::{LoadTexJob, Tex};
 use crate::waiter::Getter;
 use crate::LoadResult;
 use std::sync::Arc;
@@ -49,31 +49,13 @@ impl Gfx {
         todo!("reload all data to new back")
     }
 
-    // fn render(&mut self, scene: Scene, info: RenderInfo, result_setter: Setter<RenderResult>) {
-    //     log::trace!("Start rendering scene: {:?}", scene);
-    //     let mut renderer = self.back.get_renderer();
-    //     let remover = Box::new(TexRemover::new(self.deferred_tasks.pusher()));
-    //     let render_task = async move {
-    //         let render_result = renderer
-    //             .render(&scene, info)
-    //             .await
-    //             .map(|id| Tex::new(id, remover));
-    //         (render_result, scene)
-    //     };
-    //     let task = render_task.then_set_result(result_setter);
-    //     self.tasker.spawn_task(task);
-    // }
-    //
-    // fn present(&mut self, scene: Scene, info: PresentInfo, result_setter: Setter<Scene>) {
-    //     log::trace!("Start rendering scene: {:?}", scene);
-    //     let mut presenter = self.back.get_presenter();
-    //     let render_task = async move {
-    //         let render_result = presenter.present(&scene, info).await;
-    //         scene
-    //     };
-    //     let task = render_task.then_set_result(result_setter);
-    //     self.tasker.spawn_task(task);
-    // }
+    pub fn present(&mut self, scene: Scene, info: PresentInfo) -> Getter<Scene> {
+        log::trace!("Start presenting scene: {:?}", scene);
+        let (result_getter, result_setter) = Getter::new();
+        let mut present_job = PresentJob::new(scene, info, result_setter);
+        present_job.start(&mut self.tasker, &mut self.back);
+        result_getter
+    }
 
     pub fn start_jobs(&mut self) {
         log::trace!("Starting received jobs");
@@ -82,10 +64,6 @@ impl Gfx {
         }
     }
 }
-
-pub type Tex = Resource<TexId>;
-pub type Geom = Resource<GeomId>;
-pub type RenderResult = (Result<Tex, RenderError>, Scene);
 
 #[derive(Clone)]
 pub struct Loader {
@@ -122,10 +100,9 @@ pub struct Renderer(JobSender);
 
 impl Renderer {
     pub fn render(&self, scene: Scene, info: RenderInfo) -> Getter<RenderResult> {
-        // let (result_waiter, result_setter) = Getter::new();
-        // self.0.push(DeferredJob::Render(scene, info, result_setter));
-        // result_waiter
-
-        todo!("implement")
+        let (result_waiter, result_setter) = Getter::new();
+        let sync_job_sender = self.0.clone().into();
+        let job = RenderJob::new(scene, info, result_setter, sync_job_sender);
+        result_waiter
     }
 }
