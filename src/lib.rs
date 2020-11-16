@@ -15,6 +15,7 @@ pub mod scene;
 pub mod task_counter;
 pub mod tex;
 pub mod waiter;
+pub mod settings;
 
 #[cfg(test)]
 mod tests {
