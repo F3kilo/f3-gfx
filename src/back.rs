@@ -58,16 +58,49 @@ pub type WriteResult<T> = Result<T, WriteError>;
 #[derive(Debug, Copy, Clone)]
 pub struct WriteError;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TexData {}
 
-#[derive(Debug)]
+impl Default for TexData {
+    fn default() -> Self {
+        Self {}
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct GeomData {
     pub indices: Vec<u32>,
     pub vertices: Vec<ColVert>,
 }
 
-#[derive(Debug)]
+impl Default for GeomData {
+    fn default() -> Self {
+        let vertices = vec![
+            ColVert {
+                position: [0f32, 0f32, 0f32],
+                color: [1f32, 1f32, 1f32, 1f32],
+            },
+            ColVert {
+                position: [0f32, 1f32, 0f32],
+                color: [1f32, 1f32, 1f32, 1f32],
+            },
+            ColVert {
+                position: [1f32, 1f32, 0f32],
+                color: [1f32, 1f32, 1f32, 1f32],
+            },
+            ColVert {
+                position: [1f32, 0f32, 0f32],
+                color: [1f32, 1f32, 1f32, 1f32],
+            },
+        ];
+
+        let indices = vec![0, 1, 2, 2, 3, 0];
+
+        Self { indices, vertices }
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
 pub struct ColVert {
     pub position: [f32; 3],
     pub color: [f32; 4],
@@ -100,6 +133,16 @@ pub struct RenderInfo {
     pub size: RenderSize,
     pub background: Rgba,
     pub ambient: Rgba,
+}
+
+impl Default for RenderInfo {
+    fn default() -> Self {
+        Self {
+            size: RenderSize::FromSurface,
+            background: Rgba::new(0f32, 0f32, 0f32, 0f32),
+            ambient: Rgba::new(0f32, 0f32, 0f32, 0f32),
+        }
+    }
 }
 
 #[derive(Debug)]

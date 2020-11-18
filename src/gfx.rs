@@ -34,17 +34,6 @@ impl Gfx {
         Renderer(self.jobs.sender())
     }
 
-    pub fn start_present(&mut self, scene: Scene, info: PresentInfo) -> Getter<Scene> {
-        // let (result_waiter, result_setter) = Getter::new();
-        // self.deferred_tasks
-        //     .sender()
-        //     .send(DeferredJob::Present(scene, info, result_setter));
-        // self.perform_deferred_tasks();
-        // result_waiter
-
-        todo!("implement presentation logic")
-    }
-
     pub fn replace_back(&mut self, back: Box<dyn Backend>) {
         todo!("reload all data to new back")
     }
@@ -103,6 +92,7 @@ impl Renderer {
         let (result_waiter, result_setter) = Getter::new();
         let sync_job_sender = self.0.clone().into();
         let job = RenderJob::new(scene, info, result_setter, sync_job_sender);
+        self.0.send(Box::new(job));
         result_waiter
     }
 }
