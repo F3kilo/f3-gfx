@@ -59,7 +59,7 @@ pub type WriteResult<T> = Result<T, WriteError>;
 pub struct WriteError;
 
 #[derive(Debug, Clone)]
-pub struct TexData {}
+pub struct TexData {} // todo 0: fill texture data
 
 impl Default for TexData {
     fn default() -> Self {
@@ -67,43 +67,27 @@ impl Default for TexData {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
+pub struct GeomDataProps {
+    pub has_color: bool,
+    pub has_uv: bool,
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct GeomData {
-    pub indices: Vec<u32>,
-    pub vertices: Vec<ColVert>,
+    indices: Vec<u32>,
+    vertex_data: Vec<u8>,
+    props: GeomDataProps,
 }
 
-impl Default for GeomData {
-    fn default() -> Self {
-        let vertices = vec![
-            ColVert {
-                position: [0f32, 0f32, 0f32],
-                color: [1f32, 1f32, 1f32, 1f32],
-            },
-            ColVert {
-                position: [0f32, 1f32, 0f32],
-                color: [1f32, 1f32, 1f32, 1f32],
-            },
-            ColVert {
-                position: [1f32, 1f32, 0f32],
-                color: [1f32, 1f32, 1f32, 1f32],
-            },
-            ColVert {
-                position: [1f32, 0f32, 0f32],
-                color: [1f32, 1f32, 1f32, 1f32],
-            },
-        ];
-
-        let indices = vec![0, 1, 2, 2, 3, 0];
-
-        Self { indices, vertices }
+impl GeomData {
+    pub fn new(indices: Vec<u32>, vertex_data: Vec<u8>, props: GeomDataProps) -> Self {
+        Self {
+            indices,
+            vertex_data,
+            props
+        }
     }
-}
-
-#[derive(Debug, Copy, Clone)]
-pub struct ColVert {
-    pub position: [f32; 3],
-    pub color: [f32; 4],
 }
 
 #[async_trait]

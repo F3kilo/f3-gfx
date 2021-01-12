@@ -47,10 +47,7 @@ impl ResId for GeomId {
     type Data = GeomData;
 
     fn get_data(&self) -> Self::Data {
-        GeomData {
-            vertices: vec![],
-            indices: vec![],
-        }
+        GeomData::default()
     }
 }
 

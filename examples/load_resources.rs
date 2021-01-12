@@ -1,5 +1,5 @@
 use crate::common::dummy_back::DummyBack;
-use f3_gfx::back::{GeomData, PresentInfo, RenderInfo, TexData};
+use f3_gfx::back::{GeomData, GeomDataProps, PresentInfo, RenderInfo, TexData};
 use f3_gfx::gfx::Gfx;
 use f3_gfx::scene::{ColorGeom, Instance, Scene};
 use log::LevelFilter;
@@ -58,7 +58,14 @@ pub fn tex_data() -> TexData {
 }
 
 pub fn geom_data() -> GeomData {
-    GeomData::default()
+    let vertex_data = vec![];
+    let indices = vec![];
+    let props = GeomDataProps {
+        has_color: true,
+        has_uv: false,
+    };
+
+    GeomData::new(indices, vertex_data, props)
 }
 
 pub fn render_info() -> RenderInfo {
