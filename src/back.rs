@@ -88,6 +88,14 @@ impl GeomData {
             props
         }
     }
+
+    pub fn vertex_data(&self) -> &Vec<u8> {
+        &self.vertex_data
+    }
+
+    pub fn indices(&self) -> &Vec<u32> {
+        &self.indices
+    }
 }
 
 #[async_trait]
