@@ -96,6 +96,10 @@ impl GeomData {
     pub fn indices(&self) -> &Vec<u32> {
         &self.indices
     }
+
+    pub fn props(&self) -> &GeomDataProps {
+        &self.props
+    }
 }
 
 #[async_trait]
