@@ -67,13 +67,13 @@ impl Default for TexData {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, Eq, PartialEq)]
 pub struct GeomDataProps {
     pub has_color: bool,
     pub has_uv: bool,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Eq, PartialEq)]
 pub struct GeomData {
     indices: Vec<u32>,
     vertex_data: Vec<u8>,
