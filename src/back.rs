@@ -73,6 +73,22 @@ pub struct GeomDataProps {
     pub has_uv: bool,
 }
 
+impl GeomDataProps {
+    pub fn vertex_size(&self) -> u32 {
+        let mut pos_norm_size = 8;
+
+        if self.has_color {
+            pos_norm_size += 4;
+        }
+
+        if self.has_uv {
+            pos_norm_size += 4;
+        }
+
+        pos_norm_size
+    }
+}
+
 #[derive(Debug, Clone, Default, Eq, PartialEq)]
 pub struct GeomData {
     indices: Vec<u32>,
@@ -85,7 +101,7 @@ impl GeomData {
         Self {
             indices,
             vertex_data,
-            props
+            props,
         }
     }
 
@@ -99,6 +115,10 @@ impl GeomData {
 
     pub fn props(&self) -> &GeomDataProps {
         &self.props
+    }
+
+    pub fn vertex_count(&self) -> u32 {
+        self.vertex_data.len() as u32 / self.props().vertex_size()
     }
 }
 
