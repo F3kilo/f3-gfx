@@ -4,7 +4,7 @@ use palette::rgb::Rgba;
 use std::error::Error;
 use std::fmt;
 
-pub trait Backend: Send {
+pub trait Backend {
     fn get_tex_storage(&mut self) -> Box<dyn StoreTex>;
     fn get_geom_storage(&mut self) -> Box<dyn StoreGeom>;
     fn get_renderer(&mut self) -> Box<dyn Render>;
