@@ -1,18 +1,16 @@
 use crate::async_tasker::AsyncTasker;
 use crate::back::Backend;
-use std::fmt::Debug;
-use std::mem;
+use std::{mem, fmt};
 
-pub trait Job: Send + Debug {
+pub trait Job: Send + fmt::Display {
     fn start(&mut self, tasker: &mut AsyncTasker, back: &mut Box<dyn Backend>);
 }
 
-#[derive(Debug)]
-pub struct OnceData<Data: Debug> {
+pub struct OnceData<Data> {
     data: Option<Data>,
 }
 
-impl<Data: Debug> OnceData<Data> {
+impl<Data> OnceData<Data> {
     pub fn new(data: Data) -> Self {
         Self { data: Some(data) }
     }
@@ -22,7 +20,7 @@ impl<Data: Debug> OnceData<Data> {
     }
 }
 
-impl<T: Debug> From<T> for OnceData<T> {
+impl<T> From<T> for OnceData<T> {
     fn from(d: T) -> Self {
         OnceData::new(d)
     }

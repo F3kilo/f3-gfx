@@ -1,12 +1,13 @@
 use crate::async_tasker::{AsyncTasker, SendResult};
 use crate::back::{Backend, TexData, TexId};
-use crate::data_src::{JoinData, TakeResult};
 use crate::job::{Job, OnceData};
 use crate::job_stor::SyncJobSender;
 use crate::res::{Remove, Resource};
 use crate::waiter::Setter;
 use crate::LoadResult;
-use tokio::task::JoinHandle;
+use rusty_pool::JoinHandle;
+use crate::data_src::TakeDataResult;
+use std::fmt;
 
 pub type Tex = Resource<TexId>;
 
@@ -26,16 +27,14 @@ impl Remove for TexRemover {
     }
 }
 
-pub type LoadingTexData = JoinHandle<TakeResult<TexData>>;
+pub type LoadingTexData = JoinHandle<TakeDataResult<TexData>>;
 
-#[derive(Debug)]
 pub struct LoadJobData {
     loading_tex_data: LoadingTexData,
     job_sender: SyncJobSender,
     result_setter: Setter<LoadResult<Tex>>,
 }
 
-#[derive(Debug)]
 pub struct LoadTexJob {
     data: OnceData<LoadJobData>,
 }
@@ -65,7 +64,7 @@ impl Job for LoadTexJob {
         let mut tex_storage = back.get_tex_storage();
         let remover = Box::new(TexRemover::new(data.job_sender));
         let load_task = async move {
-            let data = loading_tex_data.join_data().await?;
+            let data = loading_tex_data.await_complete()?;
             let id = tex_storage.write(data).await?;
             Ok(Tex::new(id, remover))
         };
@@ -74,12 +73,17 @@ impl Job for LoadTexJob {
     }
 }
 
+impl fmt::Display for LoadTexJob {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Job for load texture")
+    }
+}
+
 #[derive(Debug)]
 pub struct RemoveJobData {
     tex_id: TexId,
 }
 
-#[derive(Debug)]
 pub struct RemoveTexJob {
     data: OnceData<RemoveJobData>,
 }
@@ -97,5 +101,11 @@ impl Job for RemoveTexJob {
         let tex_id = self.data.take().tex_id;
         let mut tex_storage = back.get_tex_storage();
         tasker.spawn_task(async move { tex_storage.remove(tex_id).await });
+    }
+}
+
+impl fmt::Display for RemoveTexJob {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Job for remove texture")
     }
 }

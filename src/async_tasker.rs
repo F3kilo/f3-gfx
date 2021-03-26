@@ -1,38 +1,36 @@
 use crate::task_counter::TaskCounter;
 use crate::waiter::Setter;
+use rusty_pool::ThreadPool;
 use std::future::Future;
-use tokio::runtime::Runtime;
-use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct AsyncTasker {
-    rt: Arc<Runtime>,
+    pool: ThreadPool,
     task_counter: TaskCounter,
 }
 
-impl Default for AsyncTasker {
-    fn default() -> Self {
+impl AsyncTasker {
+    pub fn new(pool: ThreadPool) -> Self {
         Self {
-            rt: Arc::new(Runtime::new().unwrap()),
-            task_counter: TaskCounter::default(),
+            pool,
+            task_counter: Default::default(),
         }
     }
-}
 
-impl AsyncTasker {
     pub fn spawn_task<F>(&mut self, task: F)
     where
         F: Future + Send + 'static,
     {
         self.task_counter.inc();
         let mut task_counter = self.task_counter.clone();
-        self.rt.spawn(async move {
+        self.pool.spawn(async move {
             task.await;
             task_counter.dec();
         });
     }
-    
-    pub fn get_runtime(&self) -> Arc<Runtime> {
-        self.rt.clone()
+
+    pub fn raw_pool(&self) -> &ThreadPool {
+        &self.pool
     }
 }
 

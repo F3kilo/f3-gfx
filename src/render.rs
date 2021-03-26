@@ -5,15 +5,14 @@ use crate::job_stor::SyncJobSender;
 use crate::scene::Scene;
 use crate::tex::{Tex, TexRemover};
 use crate::waiter::Setter;
+use std::fmt;
 
 pub type RenderResult = (Result<Tex, RenderError>, Scene);
 
-#[derive(Debug)]
 pub struct RenderJob {
     data: OnceData<RenderJobData>,
 }
 
-#[derive(Debug)]
 struct RenderJobData {
     scene: Scene,
     info: RenderInfo,
@@ -61,5 +60,11 @@ impl Job for RenderJob {
         let render_task = Self::render(renderer, data.scene, data.info, remover);
         let task = render_task.then_set_result(data.result_setter);
         tasker.spawn_task(task);
+    }
+}
+
+impl fmt::Display for RenderJob {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Job for render scene")
     }
 }

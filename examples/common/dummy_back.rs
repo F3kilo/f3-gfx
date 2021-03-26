@@ -76,7 +76,7 @@ impl<T: ResId + Send + Copy> StoreResource for Storage<T> {
     type Data = T::Data;
 
     async fn write(&mut self, _data: Self::Data) -> WriteResult<Self::Id> {
-        tokio::time::sleep(Duration::from_millis(200)).await;
+        std::thread::sleep(Duration::from_millis(200));
         let new_id = id_counter::get_unique_id();
         log::trace!("Add {:?} to tex storage", new_id);
         self.ids.lock().unwrap().push(new_id);
@@ -106,7 +106,7 @@ impl<T: ResId + Send + Copy> StoreResource for Storage<T> {
             "Try to remove {:?} from tex storage, but it wasn't found",
             id
         );
-        tokio::time::sleep(Duration::from_millis(200)).await;
+        std::thread::sleep(Duration::from_millis(200));
     }
 
     fn contains(&self, id: Self::Id) -> bool {

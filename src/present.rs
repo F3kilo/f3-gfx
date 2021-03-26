@@ -3,8 +3,8 @@ use crate::back::{Backend, Present, PresentInfo};
 use crate::job::{Job, OnceData};
 use crate::scene::Scene;
 use crate::waiter::Setter;
+use std::fmt;
 
-#[derive(Debug)]
 pub struct PresentJob {
     data: OnceData<PresentJobData>,
 }
@@ -45,5 +45,11 @@ impl Job for PresentJob {
         let present_task = Self::present(presenter, data.scene, data.info);
         let task = present_task.then_set_result(data.result_setter);
         tasker.spawn_task(task);
+    }
+}
+
+impl fmt::Display for PresentJob {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Job for present scene")
     }
 }

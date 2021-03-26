@@ -3,6 +3,7 @@ use async_trait::async_trait;
 use palette::rgb::Rgba;
 use std::error::Error;
 use std::fmt;
+use thiserror::Error;
 
 pub trait Backend {
     fn get_tex_storage(&mut self) -> Box<dyn StoreTex>;
@@ -55,8 +56,11 @@ pub enum ReadError {
 
 pub type WriteResult<T> = Result<T, WriteError>;
 
-#[derive(Debug, Copy, Clone)]
-pub struct WriteError;
+#[derive(Debug, Copy, Clone, Error)]
+pub enum WriteError {
+    #[error("Out of graphics device memory")]
+    OutOfMemory
+}
 
 #[derive(Debug, Clone)]
 pub struct TexData {} // todo 0: fill texture data

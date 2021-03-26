@@ -2,7 +2,8 @@
 #![allow(unused_variables)]
 
 use crate::back::WriteError;
-use crate::data_src::TakeError;
+use crate::data_src::TakeDataError;
+use thiserror::Error;
 
 pub mod async_tasker;
 pub mod back;
@@ -19,32 +20,14 @@ pub mod data_src;
 pub mod render;
 pub mod present;
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}
 
 pub type LoadResult<T> = Result<T, LoadError>;
 pub type WriteResult<T> = Result<T, WriteError>;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum LoadError {
-    TakeError(TakeError),
-    WriteError(WriteError),
+    #[error("Can't take data from provided source: {0}")]
+    TakeError(#[from]TakeDataError),
+    #[error("Can't write data to backend: {0}")]
+    WriteError(#[from]WriteError),
 }
-
-impl From<TakeError> for LoadError {
-    fn from(e: TakeError) -> Self {
-        Self::TakeError(e)
-    }
-}
-
-impl From<WriteError> for LoadError {
-    fn from(e: WriteError) -> Self {
-        Self::WriteError(e)
-    }
-}
-

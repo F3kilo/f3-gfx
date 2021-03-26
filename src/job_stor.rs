@@ -32,7 +32,7 @@ impl JobSender {
     pub fn send(&self, job: Box<dyn Job>) {
         self.0.send(job).unwrap_or_else(|e| {
             log::trace!(
-                "Can't send job: {:?}, because JobsStorage has been dropped already",
+                "Can't send job: {}, because JobsStorage has been dropped already",
                 e.0
             )
         });

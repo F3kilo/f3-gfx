@@ -4,7 +4,8 @@ use f3_gfx::gfx::Gfx;
 use f3_gfx::scene::{ColorGeom, Instance, Scene};
 use log::LevelFilter;
 use std::thread;
-use tokio::time::Duration;
+use rusty_pool::ThreadPool;
+use std::time::Duration;
 
 mod common;
 
@@ -14,7 +15,8 @@ fn main() {
         .init();
     log::trace!("Logger initialized");
     let back = Box::new(DummyBack::default());
-    let mut gfx = Gfx::new(back);
+    let pool = ThreadPool::new(4, 4, Duration::from_secs(2));
+    let mut gfx = Gfx::new(back, pool);
     let tex_data = tex_data();
     let geom_data = geom_data();
     let loader = gfx.loader();

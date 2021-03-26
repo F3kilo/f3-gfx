@@ -1,12 +1,13 @@
 use crate::async_tasker::{AsyncTasker, SendResult};
 use crate::back::{Backend, GeomData, GeomId};
-use crate::data_src::{JoinData, TakeResult};
+use crate::data_src::TakeDataResult;
 use crate::job::{Job, OnceData};
 use crate::job_stor::SyncJobSender;
 use crate::res::{Remove, Resource};
 use crate::waiter::Setter;
 use crate::LoadResult;
-use tokio::task::JoinHandle;
+use rusty_pool::JoinHandle;
+use std::fmt;
 
 pub type Geom = Resource<GeomId>;
 
@@ -27,16 +28,14 @@ impl Remove for GeomRemover {
     }
 }
 
-pub type LoadingGeomData = JoinHandle<TakeResult<GeomData>>;
+pub type LoadingGeomData = JoinHandle<TakeDataResult<GeomData>>;
 
-#[derive(Debug)]
 pub struct LoadJobData {
     loading_geom_data: LoadingGeomData,
     job_sender: SyncJobSender,
     result_setter: Setter<LoadResult<Geom>>,
 }
 
-#[derive(Debug)]
 pub struct LoadGeomJob {
     data: OnceData<LoadJobData>,
 }
@@ -60,13 +59,13 @@ impl LoadGeomJob {
 
 impl Job for LoadGeomJob {
     fn start(&mut self, tasker: &mut AsyncTasker, back: &mut Box<dyn Backend>) {
-        log::trace!("Start load geom");
+        log::trace!("Start load geom.");
         let data = self.data.take();
         let loading_geom_data = data.loading_geom_data;
         let mut geom_storage = back.get_geom_storage();
         let remover = Box::new(GeomRemover::new(data.job_sender));
         let load_task = async move {
-            let data = loading_geom_data.join_data().await?;
+            let data = loading_geom_data.await_complete()?;
             let id = geom_storage.write(data).await?;
             Ok(Geom::new(id, remover))
         };
@@ -75,12 +74,17 @@ impl Job for LoadGeomJob {
     }
 }
 
+impl fmt::Display for LoadGeomJob {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Job for load geometry")
+    }
+}
+
 #[derive(Debug)]
 pub struct RemoveJobData {
     geom_id: GeomId,
 }
 
-#[derive(Debug)]
 pub struct RemoveGeomJob {
     data: OnceData<RemoveJobData>,
 }
@@ -98,5 +102,11 @@ impl Job for RemoveGeomJob {
         let geom_id = self.data.take().geom_id;
         let mut geom_storage = back.get_geom_storage();
         tasker.spawn_task(async move { geom_storage.remove(geom_id).await });
+    }
+}
+
+impl fmt::Display for RemoveGeomJob {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Job for remove geometry")
     }
 }
