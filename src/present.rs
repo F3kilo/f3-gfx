@@ -27,12 +27,8 @@ impl PresentJob {
         Self { data }
     }
 
-    pub async fn present(
-        mut presenter: Box<dyn Present>,
-        scene: Scene,
-        info: PresentInfo,
-    ) -> Scene {
-        presenter.present(&scene, info).await;
+    pub fn present(mut presenter: Box<dyn Present>, scene: Scene, info: PresentInfo) -> Scene {
+        presenter.present(&scene, info);
         scene
     }
 }
@@ -42,9 +38,11 @@ impl Job for PresentJob {
         let data = self.data.take();
         log::trace!("Start presenting scene: {:?}", data.scene);
         let presenter = back.get_presenter();
-        let present_task = Self::present(presenter, data.scene, data.info);
-        let task = present_task.then_set_result(data.result_setter);
-        tasker.spawn_task(task);
+        let result_setter = data.result_setter;
+        let scene = data.scene;
+        let info = data.info;
+        tasker
+            .evaluate_and_set_result(move || Self::present(presenter, scene, info), result_setter);
     }
 }
 

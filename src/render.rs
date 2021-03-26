@@ -37,7 +37,7 @@ impl RenderJob {
         Self { data }
     }
 
-    pub async fn render(
+    fn render(
         mut renderer: Box<dyn Render>,
         scene: Scene,
         info: RenderInfo,
@@ -45,7 +45,6 @@ impl RenderJob {
     ) -> (Result<Tex, RenderError>, Scene) {
         let render_result = renderer
             .render(&scene, info)
-            .await
             .map(|id| Tex::new(id, remover));
         (render_result, scene)
     }
@@ -57,9 +56,12 @@ impl Job for RenderJob {
         log::trace!("Start rendering scene: {:?}", data.scene);
         let renderer = back.get_renderer();
         let remover = Box::new(TexRemover::new(data.job_sender));
-        let render_task = Self::render(renderer, data.scene, data.info, remover);
-        let task = render_task.then_set_result(data.result_setter);
-        tasker.spawn_task(task);
+        let info = data.info;
+        let scene = data.scene;
+        tasker.evaluate_and_set_result(
+            move || Self::render(renderer, scene, info, remover),
+            data.result_setter,
+        );
     }
 }
 

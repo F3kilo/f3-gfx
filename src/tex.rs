@@ -1,12 +1,12 @@
 use crate::async_tasker::{AsyncTasker, SendResult};
 use crate::back::{Backend, TexData, TexId};
+use crate::data_src::TakeDataResult;
 use crate::job::{Job, OnceData};
 use crate::job_stor::SyncJobSender;
 use crate::res::{Remove, Resource};
 use crate::waiter::Setter;
 use crate::LoadResult;
 use rusty_pool::JoinHandle;
-use crate::data_src::TakeDataResult;
 use std::fmt;
 
 pub type Tex = Resource<TexId>;
@@ -65,7 +65,7 @@ impl Job for LoadTexJob {
         let remover = Box::new(TexRemover::new(data.job_sender));
         let load_task = async move {
             let data = loading_tex_data.await_complete()?;
-            let id = tex_storage.write(data).await?;
+            let id = tex_storage.write(data)?;
             Ok(Tex::new(id, remover))
         };
         let task = load_task.then_set_result(data.result_setter);
@@ -100,7 +100,7 @@ impl Job for RemoveTexJob {
     fn start(&mut self, tasker: &mut AsyncTasker, back: &mut Box<dyn Backend>) {
         let tex_id = self.data.take().tex_id;
         let mut tex_storage = back.get_tex_storage();
-        tasker.spawn_task(async move { tex_storage.remove(tex_id).await });
+        tasker.execute(move || tex_storage.remove(tex_id));
     }
 }
 

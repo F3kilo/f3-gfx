@@ -1,5 +1,4 @@
 use crate::scene::Scene;
-use async_trait::async_trait;
 use palette::rgb::Rgba;
 use std::error::Error;
 use std::fmt;
@@ -12,14 +11,13 @@ pub trait Backend {
     fn get_presenter(&mut self) -> Box<dyn Present>;
 }
 
-#[async_trait]
 pub trait StoreResource: Send {
     type Id;
     type Data;
 
-    async fn write(&mut self, data: Self::Data) -> WriteResult<Self::Id>;
-    async fn read(&self, id: Self::Id) -> ReadResult<Self::Data>;
-    async fn remove(&mut self, id: Self::Id);
+    fn write(&mut self, data: Self::Data) -> WriteResult<Self::Id>;
+    fn read(&self, id: Self::Id) -> ReadResult<Self::Data>;
+    fn remove(&mut self, id: Self::Id);
 
     fn contains(&self, id: Self::Id) -> bool;
     fn list(&self) -> Vec<Self::Id>;
@@ -126,9 +124,8 @@ impl GeomData {
     }
 }
 
-#[async_trait]
 pub trait Render: Send {
-    async fn render(&mut self, scene: &Scene, info: RenderInfo) -> RenderResult;
+    fn render(&mut self, scene: &Scene, info: RenderInfo) -> RenderResult;
 }
 
 pub type RenderResult = Result<TexId, RenderError>;
@@ -171,9 +168,8 @@ pub enum RenderSize {
     Custom(i32, i32),
 }
 
-#[async_trait]
 pub trait Present: Send {
-    async fn present(&mut self, scene: &Scene, info: PresentInfo);
+    fn present(&mut self, scene: &Scene, info: PresentInfo);
 }
 
 #[derive(Debug, Copy, Clone)]

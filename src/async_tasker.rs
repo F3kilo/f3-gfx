@@ -1,6 +1,6 @@
 use crate::task_counter::TaskCounter;
 use crate::waiter::Setter;
-use rusty_pool::ThreadPool;
+use rusty_pool::{Task, ThreadPool};
 use std::future::Future;
 
 #[derive(Clone)]
@@ -25,6 +25,29 @@ impl AsyncTasker {
         let mut task_counter = self.task_counter.clone();
         self.pool.spawn(async move {
             task.await;
+            task_counter.dec();
+        });
+    }
+
+    pub fn evaluate_and_set_result<R: Send + Sync + 'static, T: Task<R> + 'static>(
+        &mut self,
+        task: T,
+        mut setter: Setter<R>,
+    ) {
+        self.task_counter.inc();
+        let mut task_counter = self.task_counter.clone();
+        self.pool.execute(move || {
+            let result = task.run();
+            task_counter.dec();
+            setter.set(result);
+        });
+    }
+
+    pub fn execute<T: Task<()> + 'static>(&mut self, task: T) {
+        self.task_counter.inc();
+        let mut task_counter = self.task_counter.clone();
+        self.pool.execute(move || {
+            task.run();
             task_counter.dec();
         });
     }

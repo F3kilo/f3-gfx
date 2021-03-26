@@ -1,5 +1,4 @@
 use crate::common::id_counter;
-use async_trait::async_trait;
 use f3_gfx::back::{
     Backend, GeomData, GeomId, Present, PresentInfo, ReadError, ReadResult, Render, RenderInfo,
     RenderResult, StoreGeom, StoreResource, StoreTex, TexData, TexId, WriteResult,
@@ -70,12 +69,11 @@ trait ResId: From<u64> + Debug + Eq + PartialEq {
     fn get_data(&self) -> Self::Data;
 }
 
-#[async_trait]
 impl<T: ResId + Send + Copy> StoreResource for Storage<T> {
     type Id = T;
     type Data = T::Data;
 
-    async fn write(&mut self, _data: Self::Data) -> WriteResult<Self::Id> {
+    fn write(&mut self, _data: Self::Data) -> WriteResult<Self::Id> {
         std::thread::sleep(Duration::from_millis(200));
         let new_id = id_counter::get_unique_id();
         log::trace!("Add {:?} to tex storage", new_id);
@@ -83,7 +81,7 @@ impl<T: ResId + Send + Copy> StoreResource for Storage<T> {
         Ok(new_id)
     }
 
-    async fn read(&self, id: Self::Id) -> ReadResult<Self::Data> {
+    fn read(&self, id: Self::Id) -> ReadResult<Self::Data> {
         let ids_lock = self.ids.lock().unwrap();
         let d = id.get_data();
         match ids_lock.iter().position(|i| *i == id) {
@@ -92,7 +90,7 @@ impl<T: ResId + Send + Copy> StoreResource for Storage<T> {
         }
     }
 
-    async fn remove(&mut self, id: Self::Id) {
+    fn remove(&mut self, id: Self::Id) {
         {
             let mut ids_lock = self.ids.lock().unwrap();
             if let Some(index) = ids_lock.iter().position(|i| *i == id) {
@@ -129,24 +127,22 @@ impl Renderer {
     }
 }
 
-#[async_trait]
 impl Render for Renderer {
-    async fn render(&mut self, scene: &Scene, _render_info: RenderInfo) -> RenderResult {
+    fn render(&mut self, scene: &Scene, _render_info: RenderInfo) -> RenderResult {
         for item in scene.color_geoms() {
             log::trace!("Rendering color geometries: {:?}", item);
         }
 
         let d = TexData {};
-        let tex = self.tex_storage.write(d).await.unwrap();
+        let tex = self.tex_storage.write(d).unwrap();
         Ok(tex)
     }
 }
 
 struct Presenter {}
 
-#[async_trait]
 impl Present for Presenter {
-    async fn present(&mut self, scene: &Scene, _present_info: PresentInfo) {
+    fn present(&mut self, scene: &Scene, _present_info: PresentInfo) {
         log::trace!("Presenting scene: {:?}", scene)
     }
 }

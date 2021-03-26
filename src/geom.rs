@@ -66,7 +66,7 @@ impl Job for LoadGeomJob {
         let remover = Box::new(GeomRemover::new(data.job_sender));
         let load_task = async move {
             let data = loading_geom_data.await_complete()?;
-            let id = geom_storage.write(data).await?;
+            let id = geom_storage.write(data)?;
             Ok(Geom::new(id, remover))
         };
         let task = load_task.then_set_result(data.result_setter);
@@ -101,7 +101,7 @@ impl Job for RemoveGeomJob {
     fn start(&mut self, tasker: &mut AsyncTasker, back: &mut Box<dyn Backend>) {
         let geom_id = self.data.take().geom_id;
         let mut geom_storage = back.get_geom_storage();
-        tasker.spawn_task(async move { geom_storage.remove(geom_id).await });
+        tasker.execute(move || { geom_storage.remove(geom_id) });
     }
 }
 
