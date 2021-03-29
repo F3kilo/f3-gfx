@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 log = "0.4.14"
 thiserror = "1.0.24"
+async-trait = "0.1.48"

@@ -29,6 +29,12 @@ impl<TaskQueue: GfxTaskReceiver> Gfx for GenericGfx<TaskQueue> {
     fn is_working(&self) -> bool {
         matches!(self, Self::Working(_))
     }
+
+    fn update(&mut self) {
+        if let Self::Working(working) = self {
+            working.update();
+        }
+    }
 }
 
 /// Graphics frontend in work
@@ -50,6 +56,10 @@ impl<TaskReceiver: GfxTaskReceiver> WorkingGenericGfx<TaskReceiver> {
             }
         }
         Ok(())
+    }
+
+    fn update(&mut self) {
+        self.backend.update();
     }
 
     fn run_service_task(&mut self, task: ServiceTask) {
