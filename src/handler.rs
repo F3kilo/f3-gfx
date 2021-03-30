@@ -1,4 +1,5 @@
 use crate::back::resource::task::add::{AddResult, AddTask};
+use crate::back::resource::task::read::{ReadResult, ReadTask};
 use crate::back::resource::task::ResId;
 use crate::back::ResultSetter;
 use crate::data_src::DataSource;
@@ -28,8 +29,15 @@ impl GfxHandler {
         Getter::new(rx)
     }
 
-    pub fn read_resource_data<R: ResId>(&mut self, _resource: GfxResource<R>) {
-        // todo 0
+    pub fn read_resource_data<R: ResId + 'static>(
+        &mut self,
+        resource: GfxResource<R>,
+    ) -> Getter<ReadResult<R::Data>> {
+        let (tx, rx) = mpsc::channel();
+        let setter = ReadSetter::new(tx, resource.clone());
+        let task = ReadTask::new(resource.id(), Box::new(setter));
+        self.task_sender.send(GfxTask::Backend(R::read(task)));
+        Getter::new(rx)
     }
 }
 
@@ -79,6 +87,34 @@ impl<R: ResId + 'static> ResultSetter<AddResult<R>> for AddSetter<R> {
             *self = Self::Done;
         } else {
             log::warn!("Trying to set resource {:?} twice.", result)
+        }
+    }
+}
+
+type ReadResultSender<R> = mpsc::Sender<ReadResult<R>>;
+
+#[derive(Debug)]
+enum ReadSetter<R: ResId> {
+    Ready(mpsc::Sender<ReadResult<R::Data>>, GfxResource<R>),
+    Done,
+}
+
+impl<R: ResId> ReadSetter<R> {
+    /// Creates new ReadSetter for backend ReadTask. `resource` will live until backend send result.
+    pub fn new(tx: ReadResultSender<R::Data>, resource: GfxResource<R>) -> Self {
+        Self::Ready(tx, resource)
+    }
+}
+
+impl<R: ResId + 'static> ResultSetter<ReadResult<R::Data>> for ReadSetter<R> {
+    fn set(&mut self, result: ReadResult<R::Data>) {
+        if let Self::Ready(tx, _) = self {
+            tx.send(result).unwrap_or_else(|e| {
+                log::info!("Getter was dropped before read result {:?} was set.", e.0);
+            });
+            *self = Self::Done;
+        } else {
+            log::warn!("Trying to send read result {:?} twice.", result)
         }
     }
 }
