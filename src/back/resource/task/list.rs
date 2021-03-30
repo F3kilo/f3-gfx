@@ -1,16 +1,16 @@
-use crate::back::resource::task::{DynResultSetter, ResourceId};
+use crate::back::resource::task::{DynResultSetter, ResId};
 use thiserror::Error;
 
 pub type ListResultSetter<Res> = DynResultSetter<Res>;
 
 #[derive(Debug)]
-pub struct ListTask<Resource: ResourceId> {
-    id: Resource,
-    result_setter: ListResultSetter<Resource>,
+pub struct ListTask<R: ResId> {
+    id: R,
+    result_setter: ListResultSetter<R>,
 }
 
-impl<Resource: ResourceId> ListTask<Resource> {
-    pub fn new(id: Resource, result_setter: ListResultSetter<Resource>) -> Self {
+impl<R: ResId> ListTask<R> {
+    pub fn new(id: R, result_setter: ListResultSetter<R>) -> Self {
         Self { id, result_setter }
     }
 }

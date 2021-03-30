@@ -2,7 +2,7 @@ use crate::back::resource::task::add::AddTask;
 use crate::back::resource::task::list::ListTask;
 use crate::back::resource::task::read::ReadTask;
 use crate::back::resource::task::remove::RemoveTask;
-use crate::back::resource::task::{ResourceId, ResourceTask};
+use crate::back::resource::task::{ResId, ResourceTask};
 use crate::back::{BackendTask, ResourceType};
 
 /// Variants of mesh resource
@@ -31,7 +31,7 @@ pub struct StaticMeshVertex {
     uv: [f32; 2],
 }
 
-impl ResourceId for StaticMeshId {
+impl ResId for StaticMeshId {
     type Data = StaticMeshData;
 
     fn add(task: AddTask<Self>) -> BackendTask {

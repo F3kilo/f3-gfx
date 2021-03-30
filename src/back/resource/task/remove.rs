@@ -1,12 +1,12 @@
-use crate::back::resource::task::ResourceId;
+use crate::back::resource::task::ResId;
 
 #[derive(Debug)]
-pub struct RemoveTask<Resource: ResourceId> {
-    id: Resource,
+pub struct RemoveTask<R: ResId> {
+    id: R,
 }
 
-impl<Resource: ResourceId> RemoveTask<Resource> {
-    pub fn new(id: Resource) -> Self {
+impl<R: ResId> RemoveTask<R> {
+    pub fn new(id: R) -> Self {
         Self { id }
     }
 }
