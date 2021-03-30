@@ -1,54 +1,82 @@
-use crate::GfxTask;
-use std::error::Error;
-use std::fmt;
+use crate::back::resource::task::add::{AddResult, AddTask};
 use crate::back::resource::task::ResourceId;
-use crate::back::resource::task::add::AddTask;
+use crate::back::ResultSetter;
 use crate::data_src::DataSource;
+use crate::res::GfxResource;
+use crate::GfxTask;
+use std::sync::mpsc;
 
 /// Wrapper for SendTask object. Provides RAII wrappers around resource ids.
 #[derive(Debug, Clone)]
-pub struct GfxHandler<TaskSender: SendTask> {
+pub struct GfxHandler {
     task_sender: TaskSender,
 }
 
-impl<TaskSender: SendTask> GfxHandler<TaskSender> {
-    pub fn add_resource<T: ResourceId>(&mut self, data_src: Box<dyn DataSource<T::Data>>) -> UniqueResource<T> {
-
-        AddTask::new()
+impl GfxHandler {
+    /// Add resource to graphics engine.
+    /// Returns receiver that will receive resource when it will be loaded.
+    pub fn add_resource<R: ResourceId + 'static>(
+        &mut self,
+        data_src: Box<dyn DataSource<R::Data>>,
+    ) -> mpsc::Receiver<AddResResult<R>> {
+        let (tx, rx) = mpsc::channel();
+        let setter = AddSetter::new(tx, self.task_sender.clone());
+        let task = AddTask::new(data_src, Box::new(setter));
+        self.task_sender.send(GfxTask::Backend(R::add(task)));
+        rx
     }
 
-    pub fn get_resource_data(&mut self) {}
-
+    pub fn read_resource_data<R: ResourceId>(&mut self, _resource: GfxResource<R>) {
+        // todo 0
+    }
 }
 
-pub trait SendTask: Clone + Send {
-    fn send(&mut self, task: GfxTask) -> Result<(), SendTaskError>;
+/// Sends tasks to gfx.
+#[derive(Debug, Clone)]
+pub struct TaskSender {
+    sender: mpsc::Sender<GfxTask>,
 }
+
+impl TaskSender {
+    /// Send task to gfx.
+    pub fn send(&self, task: GfxTask) {
+        self.sender.send(task).unwrap_or_else(|e| {
+            log::warn!(
+                "Task {:?} wasn't sent bacause gfx task receiver dropped.",
+                e.0
+            )
+        });
+    }
+}
+
+type AddResResult<R> = AddResult<GfxResource<R>>;
+type AddResSender<R> = mpsc::Sender<AddResResult<R>>;
 
 #[derive(Debug)]
-pub struct SendTaskError {
-    not_sent_task: GfxTask,
+enum AddSetter<R: ResourceId> {
+    Ready {
+        tx: mpsc::Sender<AddResResult<R>>,
+        task_sender: TaskSender,
+    },
+    Done,
 }
 
-impl SendTaskError {
-    pub fn new(not_sent_task: GfxTask) -> Self {
-        Self { not_sent_task }
-    }
-
-    pub fn into_not_sent_task(self) -> GfxTask {
-        self.not_sent_task
-    }
-}
-
-impl Error for SendTaskError {}
-
-impl fmt::Display for SendTaskError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "can't send task: receiver dropped")
+impl<R: ResourceId> AddSetter<R> {
+    pub fn new(tx: AddResSender<R>, task_sender: TaskSender) -> Self {
+        Self::Ready { tx, task_sender }
     }
 }
 
-pub struct UniqueResource<Resource: ResourceId, TaskSender: SendTask> {
-    id: Resource,
-    task_sender: TaskSender
+impl<R: ResourceId + 'static> ResultSetter<AddResult<R>> for AddSetter<R> {
+    fn set(&mut self, result: AddResult<R>) {
+        if let Self::Ready { tx, task_sender } = self {
+            let unique = result.map(|id| GfxResource::new(id, task_sender.clone()));
+            tx.send(unique).unwrap_or_else(|e| {
+                log::info!("Getter was dropped before resource {:?} was set.", e.0);
+            });
+            *self = Self::Done;
+        } else {
+            log::warn!("Trying to set resource {:?} twice.", result)
+        }
+    }
 }

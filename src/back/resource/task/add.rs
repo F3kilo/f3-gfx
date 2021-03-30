@@ -1,24 +1,24 @@
-use crate::back::resource::task::{DynResultSender, ResourceId};
+use crate::back::resource::task::{DynResultSetter, ResourceId};
 use crate::data_src::DataSource;
 use thiserror::Error;
 
 pub type AddResult<Res> = Result<Res, AddError>;
-pub type AddResultSender<Res> = DynResultSender<AddResult<Res>>;
+pub type AddResultSetter<Res> = DynResultSetter<AddResult<Res>>;
 
 #[derive(Debug)]
 pub struct AddTask<Resource: ResourceId> {
     data_src: Box<dyn DataSource<Resource::Data>>,
-    result_sender: AddResultSender<Resource>,
+    result_setter: AddResultSetter<Resource>,
 }
 
 impl<Resource: ResourceId> AddTask<Resource> {
     pub fn new(
         data_src: Box<dyn DataSource<Resource::Data>>,
-        result_sender: AddResultSender<Resource>,
+        result_setter: AddResultSetter<Resource>,
     ) -> Self {
         Self {
             data_src,
-            result_sender,
+            result_setter,
         }
     }
 }
