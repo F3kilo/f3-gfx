@@ -1,13 +1,18 @@
 pub mod resource;
-use crate::back::resource::task::ResourceTask;
-use resource::geom::GeometryId;
 use std::fmt;
+use crate::back::resource::mesh::MeshResource;
 
 /// Gfx backend task
 #[derive(Debug)]
 pub enum BackendTask {
-    Geometry(ResourceTask<GeometryId>),
+    Resource(Resource),
     Present,
+}
+
+/// Graphics resource
+#[derive(Debug)]
+pub enum Resource {
+    Mesh(MeshResource)
 }
 
 /// Gfx backend
