@@ -1,15 +1,15 @@
 use crate::back::GfxBackend;
-use crate::task_recv::{GfxTaskReceiver, ReceiveTaskError};
+use crate::task_recv::{ReceiveTask, ReceiveTaskError};
 use crate::{Gfx, GfxTask, ServiceTask};
 use thiserror::Error;
 
 /// Generic Gfx frontend
-pub(crate) enum GenericGfx<TaskReceiver: GfxTaskReceiver> {
+pub(crate) enum GenericGfx<TaskReceiver: ReceiveTask> {
     Working(WorkingGenericGfx<TaskReceiver>),
     Finished,
 }
 
-impl<TaskReceiver: GfxTaskReceiver> GenericGfx<TaskReceiver> {
+impl<TaskReceiver: ReceiveTask> GenericGfx<TaskReceiver> {
     fn process_run_task_result(&mut self, result: Result<(), RunTasksError>) {
         if let Err(e) = result {
             log::info!("Finishing gfx work: {}.", e);
@@ -18,7 +18,7 @@ impl<TaskReceiver: GfxTaskReceiver> GenericGfx<TaskReceiver> {
     }
 }
 
-impl<TaskQueue: GfxTaskReceiver> Gfx for GenericGfx<TaskQueue> {
+impl<TaskQueue: ReceiveTask> Gfx for GenericGfx<TaskQueue> {
     fn run_tasks(&mut self) {
         if let Self::Working(working) = self {
             let run_tasks_result = working.run_tasks();
@@ -38,12 +38,12 @@ impl<TaskQueue: GfxTaskReceiver> Gfx for GenericGfx<TaskQueue> {
 }
 
 /// Graphics frontend in work
-pub(crate) struct WorkingGenericGfx<TaskReceiver: GfxTaskReceiver> {
+pub(crate) struct WorkingGenericGfx<TaskReceiver: ReceiveTask> {
     backend: Box<dyn GfxBackend>,
     tasks: TaskReceiver,
 }
 
-impl<TaskReceiver: GfxTaskReceiver> WorkingGenericGfx<TaskReceiver> {
+impl<TaskReceiver: ReceiveTask> WorkingGenericGfx<TaskReceiver> {
     pub fn new(backend: Box<dyn GfxBackend>, tasks: TaskReceiver) -> Self {
         Self { backend, tasks }
     }
