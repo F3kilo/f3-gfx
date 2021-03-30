@@ -29,6 +29,8 @@ impl GfxHandler {
         Getter::new(rx)
     }
 
+    /// Read resource data from graphics engine.
+    /// Returns receiver that will receive resource when it will be loaded.
     pub fn read_resource_data<R: ResId + 'static>(
         &mut self,
         resource: GfxResource<R>,
@@ -119,17 +121,19 @@ impl<R: ResId + 'static> ResultSetter<ReadResult<R::Data>> for ReadSetter<R> {
     }
 }
 
+/// Struct that allows try to get value, which may be set in other place.
 pub struct Getter<T> {
     state: GetterState<T>,
 }
 
 impl<T> Getter<T> {
-    pub fn new(rx: mpsc::Receiver<T>) -> Self {
+    fn new(rx: mpsc::Receiver<T>) -> Self {
         Self {
             state: GetterState::Waiting(rx),
         }
     }
 
+    /// Tries to get value.
     pub fn try_get(&mut self) -> Result<T, GetError> {
         match &self.state {
             GetterState::Waiting(tx) => {
@@ -148,6 +152,7 @@ enum GetterState<T> {
     Done,
 }
 
+/// Error represent reason why value can't be taken from Getter.
 #[derive(Debug, Error)]
 pub enum GetError {
     #[error("getter value is not ready")]
