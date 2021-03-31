@@ -59,7 +59,7 @@ impl<TaskReceiver: ReceiveTask> WorkingGenericGfx<TaskReceiver> {
     }
 
     fn update(&mut self) {
-        self.backend.update();
+        self.backend.poll_tasks();
     }
 
     fn run_service_task(&mut self, task: ServiceTask) {

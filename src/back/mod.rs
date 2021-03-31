@@ -17,11 +17,14 @@ pub enum ResourceType {
 
 /// Gfx backend
 pub trait GfxBackend: fmt::Debug + Send {
+    /// Starts non-blocking execution of `task`.
     fn run_task(&mut self, task: BackendTask);
-    fn update(&mut self);
+
+    /// Checks if task is ready and sends it's result.
+    fn poll_tasks(&mut self);
 }
 
-/// Trait describe sender of some result
+/// Trait describe setter of some result
 pub trait ResultSetter<Result: Send + 'static>: fmt::Debug + Send {
     fn set(&mut self, result: Result);
 }
