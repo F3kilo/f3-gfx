@@ -24,4 +24,9 @@ impl<R: ResId> ReadTask<R> {
 
 /// Error represent some problem in process of reading resource data from graphics backend.
 #[derive(Debug, Error)]
-pub enum ReadError {}
+pub enum ReadError {
+    #[error("resource is not found")]
+    NotFound,
+    #[error("can't read resource")]
+    CantRead,
+}

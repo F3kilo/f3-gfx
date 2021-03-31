@@ -13,3 +13,4 @@ async-trait = "0.1.48"
 
 [dev-dependencies]
 env_logger = "0.8.3"
+futures = "0.3.13"

@@ -14,11 +14,17 @@ pub enum MeshResource {
 #[derive(Eq, PartialEq, Hash, Ord, PartialOrd, Debug, Copy, Clone)]
 pub struct StaticMeshId(u64);
 
+impl From<u64> for StaticMeshId {
+    fn from(v: u64) -> Self {
+        Self(v)
+    }
+}
+
 /// Data of static mesh
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct StaticMeshData {
-    indices: Vec<u32>,
-    vertex_data: Vec<StaticMeshVertex>,
+    pub indices: Vec<u32>,
+    pub vertex_data: Vec<StaticMeshVertex>,
 }
 
 /// Single vertex of static mesh

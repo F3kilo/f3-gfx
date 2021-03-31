@@ -16,12 +16,16 @@ pub struct GfxHandler {
 }
 
 impl GfxHandler {
+    pub fn new(task_sender: TaskSender) -> Self {
+        Self { task_sender }
+    }
+
     /// Add resource to graphics engine.
     /// Returns receiver that will receive resource when it will be loaded.
     pub fn add_resource<R: ResId + 'static>(
         &mut self,
         data_src: Box<dyn DataSource<R::Data>>,
-    ) -> Getter<AddResResult<R>> {
+    ) -> Getter<AddResult<GfxResource<R>>> {
         let (tx, rx) = mpsc::channel();
         let setter = AddSetter::new(tx, self.task_sender.clone());
         let task = AddTask::new(data_src, Box::new(setter));
@@ -50,6 +54,10 @@ pub struct TaskSender {
 }
 
 impl TaskSender {
+    pub fn new(sender: mpsc::Sender<GfxTask>) -> Self {
+        Self { sender }
+    }
+
     /// Send task to gfx.
     pub fn send(&self, task: GfxTask) {
         self.sender.send(task).unwrap_or_else(|e| {
@@ -61,13 +69,12 @@ impl TaskSender {
     }
 }
 
-type AddResResult<R> = AddResult<GfxResource<R>>;
-type AddResSender<R> = mpsc::Sender<AddResResult<R>>;
+type AddResSender<R> = mpsc::Sender<AddResult<GfxResource<R>>>;
 
 #[derive(Debug)]
 enum AddSetter<R: ResId> {
     Ready {
-        tx: mpsc::Sender<AddResResult<R>>,
+        tx: mpsc::Sender<AddResult<GfxResource<R>>>,
         task_sender: TaskSender,
     },
     Done,

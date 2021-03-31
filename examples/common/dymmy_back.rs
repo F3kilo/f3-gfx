@@ -1,10 +1,13 @@
 use f3_gfx::back::resource::mesh::{MeshResource, StaticMeshData, StaticMeshId};
-use f3_gfx::back::resource::task::add::AddTask;
-use f3_gfx::back::resource::task::read::ReadTask;
+use f3_gfx::back::resource::task::add::{AddResult, AddTask};
+use f3_gfx::back::resource::task::read::{ReadError, ReadTask};
 use f3_gfx::back::resource::task::remove::RemoveTask;
 use f3_gfx::back::resource::task::{ResId, ResourceTask};
 use f3_gfx::back::{BackendTask, GfxBackend, ResourceType};
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static ID_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug, Default)]
 pub struct DummyGfxBack {
@@ -51,7 +54,6 @@ impl<R: ResId> ManagerFnByTask<R> for ResourceTask<R> {
             ResourceTask::Add(t) => manager.add(t),
             ResourceTask::Remove(t) => manager.remove(t),
             ResourceTask::Read(t) => manager.read(t),
-            ResourceTask::List(_) => {}
         }
     }
 }
@@ -69,14 +71,35 @@ struct StaticMeshManager {
 
 impl ResourceManager<StaticMeshId> for StaticMeshManager {
     fn add(&mut self, task: AddTask<StaticMeshId>) {
-        log::trace!("Adding static mesh: {:?}", task);
+        let (mut data_src, mut result_setter) = task.into_inner();
+        let data = futures::executor::block_on(data_src.take_data())
+            .expect("Can't take data from data source");
+        let id = new_id();
+        self.storage.insert(id, data);
+        let result = AddResult::Ok(id);
+        log::trace!("Setting add result: {:?}", result);
+        result_setter.set(result)
     }
 
     fn remove(&mut self, task: RemoveTask<StaticMeshId>) {
         log::trace!("Removing static mesh: {:?}", task);
+        let id = task.into_inner();
+        self.storage.remove(&id);
     }
 
     fn read(&mut self, task: ReadTask<StaticMeshId>) {
         log::trace!("Reading static mesh: {:?}", task);
+        let (id, mut result_setter) = task.into_inner();
+        let data = self.storage.get(&id).map(Clone::clone);
+        let result = match data {
+            Some(d) => Ok(d),
+            None => Err(ReadError::NotFound),
+        };
+        log::trace!("Setting read result: {:?}", result);
+        result_setter.set(result);
     }
+}
+
+fn new_id<T: ResId + From<u64>>() -> T {
+    ID_COUNTER.fetch_add(1, Ordering::SeqCst).into()
 }
