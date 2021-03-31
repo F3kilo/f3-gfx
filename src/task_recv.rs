@@ -2,7 +2,7 @@ use crate::GfxTask;
 use thiserror::Error;
 
 /// Trait source of gfx tasks
-pub trait ReceiveTask {
+pub trait ReceiveTask: Send {
     /// Get new tasks if some present
     fn pop(&mut self) -> Result<Option<GfxTask>, ReceiveTaskError>;
 }

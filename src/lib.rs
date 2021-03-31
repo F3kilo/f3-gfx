@@ -23,7 +23,7 @@ pub enum ServiceTask {
 }
 
 /// Gfx frontend.
-pub trait Gfx {
+pub trait Gfx: Send {
     /// Run enqueued tasks.
     fn run_tasks(&mut self);
 
