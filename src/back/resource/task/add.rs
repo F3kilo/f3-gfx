@@ -12,13 +12,20 @@ pub struct AddTask<R: ResId> {
 }
 
 impl<R: ResId> AddTask<R> {
+    /// Creates new Add task for backend resource.
     pub fn new(data_src: Box<dyn DataSource<R::Data>>, result_setter: AddResultSetter<R>) -> Self {
         Self {
             data_src,
             result_setter,
         }
     }
+
+    /// Takes data source and result setter from `self`.
+    pub fn into_inner(self) -> (Box<dyn DataSource<R::Data>>, AddResultSetter<R>) {
+        (self.data_src, self.result_setter)
+    }
 }
 
+/// Error represent some problem in process of adding resource to graphics backend.
 #[derive(Debug, Error)]
 pub enum AddError {}

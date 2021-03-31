@@ -1,5 +1,4 @@
 use crate::back::resource::task::add::AddTask;
-use crate::back::resource::task::list::ListTask;
 use crate::back::resource::task::read::ReadTask;
 use crate::back::resource::task::remove::RemoveTask;
 use crate::back::resource::task::{ResId, ResourceTask};
@@ -46,11 +45,6 @@ impl ResId for StaticMeshId {
 
     fn read(task: ReadTask<Self>) -> BackendTask {
         let mesh_resource = MeshResource::StaticMesh(ResourceTask::Read(task));
-        BackendTask::Resource(ResourceType::Mesh(mesh_resource))
-    }
-
-    fn list(task: ListTask<Self>) -> BackendTask {
-        let mesh_resource = MeshResource::StaticMesh(ResourceTask::List(task));
         BackendTask::Resource(ResourceType::Mesh(mesh_resource))
     }
 }
