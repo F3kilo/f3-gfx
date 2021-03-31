@@ -6,7 +6,13 @@ pub struct RemoveTask<R: ResId> {
 }
 
 impl<R: ResId> RemoveTask<R> {
+    /// Creates new Remove task for graphics backend.
     pub fn new(id: R) -> Self {
         Self { id }
+    }
+
+    /// Takes resource idenyifier from `self`.
+    pub fn into_inner(self) -> R {
+        self.id
     }
 }
