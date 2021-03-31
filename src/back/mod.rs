@@ -21,7 +21,8 @@ pub trait GfxBackend: fmt::Debug + Send {
     fn run_task(&mut self, task: BackendTask);
 
     /// Checks if task is ready and sends it's result.
-    fn poll_tasks(&mut self);
+    /// Returns true if some tasks is not finish.
+    fn poll_tasks(&mut self) -> bool;
 }
 
 /// Trait describe setter of some result

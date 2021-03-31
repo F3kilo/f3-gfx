@@ -29,7 +29,7 @@ fn main() {
     assert!(mesh0.try_get().is_err());
     assert!(mesh1.try_get().is_err());
     gfx.run_tasks();
-
+    gfx.update();
     assert!(mesh0.try_get().is_ok());
     assert!(mesh1.try_get().is_ok());
 }

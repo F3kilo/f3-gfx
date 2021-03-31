@@ -32,7 +32,7 @@ impl<TaskQueue: ReceiveTask> Gfx for GenericGfx<TaskQueue> {
 
     fn update(&mut self) {
         if let Self::Working(working) = self {
-            working.update();
+            working.poll_tasks();
         }
     }
 }
@@ -58,8 +58,8 @@ impl<TaskReceiver: ReceiveTask> WorkingGenericGfx<TaskReceiver> {
         Ok(())
     }
 
-    fn update(&mut self) {
-        self.backend.poll_tasks();
+    fn poll_tasks(&mut self) -> bool {
+        self.backend.poll_tasks()
     }
 
     fn run_service_task(&mut self, task: ServiceTask) {

@@ -27,5 +27,5 @@ impl<R: ResId> AddTask<R> {
 }
 
 /// Error represent some problem in process of adding resource to graphics backend.
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Copy, Clone)]
 pub enum AddError {}
