@@ -8,6 +8,7 @@ mod generic_gfx;
 pub mod handler;
 pub mod res;
 pub mod task_recv;
+pub mod scene;
 
 /// Gfx frontend task.
 #[derive(Debug)]

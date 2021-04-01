@@ -1,12 +1,15 @@
 pub mod resource;
+pub mod present;
+
 use std::fmt;
 use crate::back::resource::mesh::MeshResource;
+use crate::back::present::PresentTask;
 
 /// Gfx backend task
 #[derive(Debug)]
 pub enum BackendTask {
     Resource(ResourceType),
-    Present,
+    Present(PresentTask),
 }
 
 /// Graphics resource

@@ -1,13 +1,16 @@
 use crate::back::resource::task::add::{AddResult, AddTask};
 use crate::back::resource::task::read::{ReadResult, ReadTask};
 use crate::back::resource::task::ResId;
-use crate::back::ResultSetter;
+use crate::back::{ResultSetter, BackendTask};
 use crate::data_src::DataSource;
 use crate::res::GfxResource;
+use crate::scene::Scene;
 use crate::GfxTask;
 use std::sync::mpsc;
 use std::sync::mpsc::TryRecvError;
 use thiserror::Error;
+use std::fmt::Debug;
+use crate::back::present::{PresentTask, PresentInfo};
 
 /// Wrapper for SendTask object. Provides RAII wrappers around resource ids.
 #[derive(Debug, Clone)]
@@ -43,6 +46,17 @@ impl GfxHandler {
         let setter = ReadSetter::new(tx, resource.clone());
         let task = ReadTask::new(resource.id(), Box::new(setter));
         self.task_sender.send(GfxTask::Backend(R::read(task)));
+        Getter::new(rx)
+    }
+
+    /// Presents scene on screen.
+    /// Returns receiver that will receive used scene.
+    pub fn present_scene(&mut self, present_info: PresentInfo, scene: Scene) -> Getter<Scene> {
+        let (tx, rx) = mpsc::channel();
+        let setter = Box::new(GenericSetter::new(tx));
+        let present_task = PresentTask::new(present_info, scene, setter);
+        let gfx_task = GfxTask::Backend(BackendTask::Present(present_task));
+        self.task_sender.send(gfx_task);
         Getter::new(rx)
     }
 }
@@ -124,6 +138,34 @@ impl<R: ResId + 'static> ResultSetter<ReadResult<R::Data>> for ReadSetter<R> {
             *self = Self::Done;
         } else {
             log::warn!("Trying to send read result {:?} twice.", result)
+        }
+    }
+}
+
+// todo 1: use GenericSetter inside AddSetter and Read Setter
+
+#[derive(Debug)]
+enum GenericSetter<T: Send + Debug + 'static> {
+    Ready(mpsc::Sender<T>),
+    Done,
+}
+
+impl<T: Send + Debug + 'static> GenericSetter<T> {
+    /// Creates new generic setter.
+    pub fn new(tx: mpsc::Sender<T>) -> Self {
+        Self::Ready(tx)
+    }
+}
+
+impl<T: Send + Debug + 'static> ResultSetter<T> for GenericSetter<T> {
+    fn set(&mut self, result: T) {
+        if let Self::Ready(tx) = self {
+            tx.send(result).unwrap_or_else(|e| {
+                log::info!("Getter was dropped before result {:?} set.", e.0);
+            });
+            *self = Self::Done;
+        } else {
+            log::warn!("Trying to send result {:?} twice.", result)
         }
     }
 }

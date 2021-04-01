@@ -9,6 +9,8 @@ use std::sync::mpsc;
 use f3_gfx::back::resource::task::add::AddResult;
 use f3_gfx::res::GfxResource;
 use f3_gfx::Gfx;
+use f3_gfx::back::present::PresentInfo;
+use f3_gfx::scene::{Scene, ColorStaticMesh, InstanceData};
 
 mod common;
 
@@ -30,8 +32,26 @@ fn main() {
     assert!(mesh1.try_get().is_err());
     gfx.run_tasks();
     gfx.update();
-    assert!(mesh0.try_get().is_ok());
-    assert!(mesh1.try_get().is_ok());
+    let mesh0 = mesh0.try_get().unwrap().unwrap();
+    let mesh1 = mesh1.try_get().unwrap().unwrap();
+
+    let present_info = PresentInfo::default();
+    let mut scene = Scene::default();
+    scene.color_static_mesh.push(ColorStaticMesh {
+        mesh: mesh0,
+        instance: InstanceData::default(),
+    });
+
+    scene.color_static_mesh.push(ColorStaticMesh {
+        mesh: mesh1,
+        instance: InstanceData::default(),
+    });
+
+    let mut present_result = handler.present_scene(present_info, scene);
+    assert!(!present_result.try_get().is_ok());
+    gfx.run_tasks();
+    gfx.update();
+    assert!(present_result.try_get().is_ok());
 }
 
 fn load_static_mesh(handler: &mut GfxHandler) -> Getter<AddResult<GfxResource<StaticMeshId>>> {

@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::fmt::{Debug, Formatter};
 use std::sync::atomic::{AtomicU64, Ordering};
+use f3_gfx::back::present::PresentTask;
 
 static ID_COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -22,7 +23,7 @@ impl GfxBackend for DummyGfxBack {
         log::trace!("Backend receives task: {:?}", task);
         match task {
             BackendTask::Resource(t) => self.start_resource_task(t),
-            BackendTask::Present => log::trace!("Backend receives present task."),
+            BackendTask::Present(t) => self.start_present(t),
         }
     }
 
@@ -60,6 +61,19 @@ impl DummyGfxBack {
                 t.call(&mut self.static_mesh_manager, &mut self.running_tasks)
             }
         }
+    }
+
+    fn start_present(&mut self, task: PresentTask) {
+        log::trace!("Starting present task: {:?}", task);
+        let (_info, scene, mut setter) = task.into_inner();
+        let mut scene_opt = Some(scene);
+        let present = Box::new(RunTask(move || {
+            log::trace!("Presenting scene: {:?}", scene_opt);
+            setter.set(scene_opt.take().unwrap());
+            true
+        }));
+
+        self.running_tasks.push(present);
     }
 }
 
