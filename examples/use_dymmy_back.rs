@@ -2,7 +2,7 @@ use crate::common::dymmy_back::DummyGfxBack;
 use crate::common::task_recv::TaskReceiver;
 use f3_gfx::back::resource::mesh::{StaticMeshData, StaticMeshVertex, StaticMeshId};
 use f3_gfx::data_src::{DataSource, TakeDataResult};
-use f3_gfx::handler::{Getter, GfxHandler, TaskSender};
+use f3_gfx::handler::{Getter, GfxHandler, TaskSender, GetError};
 use f3_gfx::GfxBuilder;
 use log::LevelFilter;
 use std::sync::mpsc;
@@ -24,7 +24,6 @@ fn main() {
     let task_receiver = TaskReceiver::new(rx);
     let mut gfx = GfxBuilder::new(task_receiver, Box::new(back)).build();
     let task_sender = TaskSender::new(tx);
-
     let mut handler = GfxHandler::new(task_sender);
     let mut mesh0 = load_static_mesh(&mut handler);
     let mut mesh1 = load_static_mesh(&mut handler);
@@ -52,6 +51,7 @@ fn main() {
     gfx.run_tasks();
     gfx.update();
     assert!(present_result.try_get().is_ok());
+    assert!(matches!(present_result.try_get(), Err(GetError::AlreadyTaken)))
 }
 
 fn load_static_mesh(handler: &mut GfxHandler) -> Getter<AddResult<GfxResource<StaticMeshId>>> {
