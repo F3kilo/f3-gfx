@@ -104,9 +104,7 @@ struct StaticMeshManager {
 
 impl ResourceManager<StaticMeshId> for StaticMeshManager {
     fn add(&mut self, task: AddTask<StaticMeshId>, running: &mut Vec<Box<dyn RunningTask>>) {
-        let (mut data_src, mut result_setter) = task.into_inner();
-        let data = futures::executor::block_on(data_src.take_data())
-            .expect("Can't take data from data source");
+        let (data , mut result_setter) = task.into_inner();
         let id = new_id();
         self.storage.insert(id, data);
         let result = AddResult::Ok(id);

@@ -1,16 +1,15 @@
 use crate::common::dymmy_back::DummyGfxBack;
 use crate::common::task_recv::TaskReceiver;
-use f3_gfx::back::resource::mesh::{StaticMeshData, StaticMeshVertex, StaticMeshId};
-use f3_gfx::data_src::{DataSource, TakeDataResult};
-use f3_gfx::handler::{Getter, GfxHandler, TaskSender, GetError};
+use f3_gfx::back::present::PresentInfo;
+use f3_gfx::back::resource::mesh::{StaticMeshData, StaticMeshId, StaticMeshVertex};
+use f3_gfx::back::resource::task::add::AddResult;
+use f3_gfx::handler::{GetError, Getter, GfxHandler, TaskSender};
+use f3_gfx::res::GfxResource;
+use f3_gfx::scene::{ColorStaticMesh, InstanceData, Scene};
+use f3_gfx::Gfx;
 use f3_gfx::GfxBuilder;
 use log::LevelFilter;
 use std::sync::mpsc;
-use f3_gfx::back::resource::task::add::AddResult;
-use f3_gfx::res::GfxResource;
-use f3_gfx::Gfx;
-use f3_gfx::back::present::PresentInfo;
-use f3_gfx::scene::{Scene, ColorStaticMesh, InstanceData};
 
 mod common;
 
@@ -51,22 +50,19 @@ fn main() {
     gfx.run_tasks();
     gfx.update();
     assert!(present_result.try_get().is_ok());
-    assert!(matches!(present_result.try_get(), Err(GetError::AlreadyTaken)))
+    assert!(matches!(
+        present_result.try_get(),
+        Err(GetError::AlreadyTaken)
+    ))
 }
 
 fn load_static_mesh(handler: &mut GfxHandler) -> Getter<AddResult<GfxResource<StaticMeshId>>> {
-    handler.add_resource(Box::new(StaticMeshDataSrc{}))
+    handler.add_resource(static_mesh_data())
 }
 
-#[derive(Debug)]
-struct StaticMeshDataSrc {}
-
-#[async_trait::async_trait]
-impl DataSource<StaticMeshData> for StaticMeshDataSrc {
-    async fn take_data(&mut self) -> TakeDataResult<StaticMeshData> {
-        Ok(StaticMeshData {
-            indices: vec![0, 1, 2],
-            vertex_data: vec![StaticMeshVertex::default(); 3],
-        })
+fn static_mesh_data() -> StaticMeshData {
+    StaticMeshData {
+        indices: vec![0, 1, 2],
+        vertex_data: vec![StaticMeshVertex::default(); 3],
     }
 }

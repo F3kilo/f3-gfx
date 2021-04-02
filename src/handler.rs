@@ -2,7 +2,6 @@ use crate::back::resource::task::add::{AddResult, AddTask};
 use crate::back::resource::task::read::{ReadResult, ReadTask};
 use crate::back::resource::task::ResId;
 use crate::back::{ResultSetter, BackendTask};
-use crate::data_src::DataSource;
 use crate::res::GfxResource;
 use crate::scene::Scene;
 use crate::GfxTask;
@@ -27,11 +26,11 @@ impl GfxHandler {
     /// Returns receiver that will receive resource when it will be loaded.
     pub fn add_resource<R: ResId + 'static>(
         &mut self,
-        data_src: Box<dyn DataSource<R::Data>>,
+        data: R::Data,
     ) -> Getter<AddResult<GfxResource<R>>> {
         let (tx, rx) = mpsc::channel();
         let setter = AddSetter::new(tx, self.task_sender.clone());
-        let task = AddTask::new(data_src, Box::new(setter));
+        let task = AddTask::new(data, Box::new(setter));
         self.task_sender.send(GfxTask::Backend(R::add(task)));
         Getter::new(rx)
     }
