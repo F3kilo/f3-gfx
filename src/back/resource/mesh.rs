@@ -1,3 +1,4 @@
+use crate::back::resource::new_unique_id;
 use crate::back::resource::task::add::AddTask;
 use crate::back::resource::task::read::ReadTask;
 use crate::back::resource::task::remove::RemoveTask;
@@ -76,6 +77,10 @@ pub struct StaticMeshVertex {
 
 impl ResId for StaticMeshId {
     type Data = StaticMeshData;
+
+    fn new_unique() -> Self {
+        Self(new_unique_id())
+    }
 
     fn add(task: AddTask<Self>) -> BackendTask {
         let mesh_resource = MeshResource::StaticMesh(ResourceTask::Add(task));

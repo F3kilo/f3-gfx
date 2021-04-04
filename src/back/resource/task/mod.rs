@@ -18,6 +18,8 @@ pub enum ResourceTask<R: ResId> {
 pub trait ResId: Send + Sync + fmt::Debug + Copy + Clone {
     type Data: Send + fmt::Debug;
 
+    fn new_unique() -> Self;
+    
     fn add(task: AddTask<Self>) -> BackendTask;
     fn remove(task: RemoveTask<Self>) -> BackendTask;
     fn read(task: ReadTask<Self>) -> BackendTask;
