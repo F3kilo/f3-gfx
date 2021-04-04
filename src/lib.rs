@@ -1,13 +1,13 @@
-use back::{BackendTask, GfxBackend};
-use generic_gfx::{GenericGfx, WorkingGenericGfx};
-use task_recv::ReceiveTask;
-
 pub mod back;
 mod generic_gfx;
 pub mod handler;
 pub mod res;
-pub mod task_recv;
 pub mod scene;
+pub mod task_recv;
+
+use back::{BackendTask, GfxBackend};
+use generic_gfx::{GenericGfx, WorkingGenericGfx};
+use task_recv::ReceiveTask;
 
 /// Gfx frontend task.
 #[derive(Debug)]

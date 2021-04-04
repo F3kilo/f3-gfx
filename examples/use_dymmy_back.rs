@@ -63,6 +63,6 @@ fn load_static_mesh(handler: &mut GfxHandler) -> Getter<AddResult<GfxResource<St
 fn static_mesh_data() -> StaticMeshData {
     StaticMeshData {
         indices: vec![0, 1, 2],
-        vertex_data: vec![StaticMeshVertex::default(); 3],
+        vertices: vec![StaticMeshVertex::default(); 3],
     }
 }
