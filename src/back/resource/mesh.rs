@@ -4,7 +4,7 @@ use crate::back::resource::task::read::ReadTask;
 use crate::back::resource::task::remove::RemoveTask;
 use crate::back::resource::task::{ResId, ResourceTask};
 use crate::back::{BackendTask, ResourceType};
-use std::mem;
+use std::{mem, slice};
 
 /// Variants of mesh resource.
 #[derive(Debug)]
@@ -14,19 +14,15 @@ pub enum MeshResource {
 
 /// Provides information about mesh data sizes.
 pub trait MeshData {
-    fn one_vertex_size() -> usize;
-    fn vertex_count(&self) -> usize;
-
-    fn vertices_size(&self) -> usize {
-        Self::one_vertex_size() * self.vertex_count()
-    }
-
     fn one_index_size() -> usize;
     fn index_count(&self) -> usize;
+    fn raw_indices(&self) -> &[u8];
 
-    fn indices_size(&self) -> usize {
-        Self::one_index_size() * self.index_count()
-    }
+    fn one_vertex_size() -> usize;
+    fn vertex_count(&self) -> usize;
+    fn raw_vertices(&self) -> &[u8];
+
+    fn from_raw(indices_data: Vec<u8>, vertices_data: Vec<u8>) -> Self;
 }
 
 /// Unique identifier of static mesh resource.
@@ -49,6 +45,20 @@ pub struct StaticMeshData {
 }
 
 impl MeshData for StaticMeshData {
+    fn one_index_size() -> usize {
+        mem::size_of::<MeshIndex>()
+    }
+
+    fn index_count(&self) -> usize {
+        self.indices.len()
+    }
+
+    fn raw_indices(&self) -> &[u8] {
+        let ptr = self.indices.as_slice().as_ptr() as *const u8;
+        let size = mem::size_of::<MeshIndex>() * self.indices.len();
+        unsafe { slice::from_raw_parts(ptr, size) }
+    }
+
     fn one_vertex_size() -> usize {
         mem::size_of::<StaticMeshVertex>()
     }
@@ -57,12 +67,24 @@ impl MeshData for StaticMeshData {
         self.vertices.len()
     }
 
-    fn one_index_size() -> usize {
-        mem::size_of::<MeshIndex>()
+    fn raw_vertices(&self) -> &[u8] {
+        let ptr = self.vertices.as_slice().as_ptr() as *const u8;
+        let size = mem::size_of::<StaticMeshVertex>() * self.vertices.len();
+        unsafe { slice::from_raw_parts(ptr, size) }
     }
 
-    fn index_count(&self) -> usize {
-        self.indices.len()
+    fn from_raw(indices_data: Vec<u8>, vertices_data: Vec<u8>) -> Self {
+        let indices_count = indices_data.len() / mem::size_of::<MeshIndex>();
+        let indices_ptr = indices_data.as_ptr() as *const MeshIndex;
+        let indices_slice = unsafe { slice::from_raw_parts(indices_ptr, indices_count) };
+        let indices = indices_slice.to_owned();
+
+        let vertex_count = vertices_data.len() / mem::size_of::<StaticMeshVertex>();
+        let vertices_ptr = vertices_data.as_ptr() as *const StaticMeshVertex;
+        let vertices_slice = unsafe { slice::from_raw_parts(vertices_ptr, vertex_count) };
+        let vertices = vertices_slice.to_owned();
+
+        Self { indices, vertices }
     }
 }
 
@@ -118,7 +140,5 @@ mod tests {
         assert_eq!(index_size, 4);
         assert_eq!(data.vertex_count(), 4);
         assert_eq!(data.index_count(), 6);
-        assert_eq!(data.vertices_size(), data.vertices.len() * vertex_size);
-        assert_eq!(data.indices_size(), data.indices.len() * index_size);
     }
 }
