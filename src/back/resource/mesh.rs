@@ -104,6 +104,14 @@ impl ResId for StaticMeshId {
         Self(new_unique_id())
     }
 
+    fn to_raw(&self) -> u64 {
+        self.0
+    }
+
+    fn from_raw(raw: u64) -> Self {
+        Self(raw)
+    }
+
     fn add(task: AddTask<Self>) -> BackendTask {
         let mesh_resource = MeshResource::StaticMesh(ResourceTask::Add(task));
         BackendTask::Resource(ResourceType::Mesh(mesh_resource))

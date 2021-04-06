@@ -19,7 +19,10 @@ pub trait ResId: Send + Sync + fmt::Debug + Copy + Clone {
     type Data: Send + fmt::Debug;
 
     fn new_unique() -> Self;
-    
+
+    fn to_raw(&self) -> u64;
+    fn from_raw(raw: u64) -> Self;
+
     fn add(task: AddTask<Self>) -> BackendTask;
     fn remove(task: RemoveTask<Self>) -> BackendTask;
     fn read(task: ReadTask<Self>) -> BackendTask;
