@@ -110,7 +110,7 @@ impl ResourceManager<StaticMeshId> for StaticMeshManager {
         let result = AddResult::Ok(id);
         let set_result_task = Box::new(RunTask(move || {
             log::trace!("Setting add task result: {:?}", result);
-            result_setter.set(result);
+            result_setter.set(result.clone());
             true
         }));
 

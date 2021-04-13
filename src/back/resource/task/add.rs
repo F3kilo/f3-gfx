@@ -26,8 +26,10 @@ impl<R: ResId> AddTask<R> {
 }
 
 /// Error represent some problem in process of adding resource to graphics backend.
-#[derive(Debug, Error, Copy, Clone)]
+#[derive(Debug, Error, Clone)]
 pub enum AddError {
     #[error("graphics backend has not enough space for resource")]
-    SpaceExhausted
+    SpaceExhausted,
+    #[error("can't add resource to graphics backend")]
+    CantAdd(String)
 }
