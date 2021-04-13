@@ -28,4 +28,4 @@ pub trait ResId: Send + Sync + fmt::Debug + Copy + Clone {
     fn read(task: ReadTask<Self>) -> BackendTask;
 }
 
-pub type DynResultSetter<R> = Box<dyn ResultSetter<R>>;
+pub type DynResultSetter<R> = Box<dyn ResultSetter<R> + Send>;
