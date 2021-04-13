@@ -28,8 +28,8 @@ fn main() {
     let mut mesh1 = load_static_mesh(&mut handler);
     assert!(mesh0.try_get().is_err());
     assert!(mesh1.try_get().is_err());
-    gfx.run_tasks();
-    gfx.update();
+    gfx.run_tasks().unwrap();
+    gfx.update().unwrap();
     let mesh0 = mesh0.try_get().unwrap().unwrap();
     let mesh1 = mesh1.try_get().unwrap().unwrap();
 
@@ -47,8 +47,8 @@ fn main() {
 
     let mut present_result = handler.present_scene(present_info, scene);
     assert!(!present_result.try_get().is_ok());
-    gfx.run_tasks();
-    gfx.update();
+    gfx.run_tasks().unwrap();
+    gfx.update().unwrap();
     assert!(present_result.try_get().is_ok());
     assert!(matches!(
         present_result.try_get(),

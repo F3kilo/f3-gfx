@@ -1,9 +1,10 @@
-pub mod resource;
 pub mod present;
+pub mod resource;
 
-use std::fmt;
-use crate::back::resource::mesh::MeshResource;
 use crate::back::present::PresentTask;
+use crate::back::resource::mesh::MeshResource;
+use std::fmt;
+use crate::GfxError;
 
 /// Gfx backend task
 #[derive(Debug)]
@@ -15,17 +16,17 @@ pub enum BackendTask {
 /// Graphics resource
 #[derive(Debug)]
 pub enum ResourceType {
-    Mesh(MeshResource)
+    Mesh(MeshResource),
 }
 
 /// Gfx backend
 pub trait GfxBackend: fmt::Debug + Send {
     /// Starts non-blocking execution of `task`.
-    fn run_task(&mut self, task: BackendTask);
+    fn run_task(&mut self, task: BackendTask) -> Result<(), GfxError>;
 
     /// Checks if task is ready and sends it's result.
-    /// Returns true if some tasks is not finish.
-    fn poll_tasks(&mut self) -> bool;
+    /// Returns true if some tasks are NOT finish.
+    fn update(&mut self) -> Result<bool, GfxError>;
 }
 
 /// Trait describe setter of some result

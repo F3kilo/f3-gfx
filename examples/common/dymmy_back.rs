@@ -1,3 +1,4 @@
+use f3_gfx::back::present::PresentTask;
 use f3_gfx::back::resource::mesh::{MeshResource, StaticMeshData, StaticMeshId};
 use f3_gfx::back::resource::task::add::{AddResult, AddTask};
 use f3_gfx::back::resource::task::read::{ReadError, ReadTask};
@@ -8,7 +9,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::fmt::{Debug, Formatter};
 use std::sync::atomic::{AtomicU64, Ordering};
-use f3_gfx::back::present::PresentTask;
+use f3_gfx::GfxError;
 
 static ID_COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -19,15 +20,16 @@ pub struct DummyGfxBack {
 }
 
 impl GfxBackend for DummyGfxBack {
-    fn run_task(&mut self, task: BackendTask) {
+    fn run_task(&mut self, task: BackendTask) -> Result<(), GfxError> {
         log::trace!("Backend receives task: {:?}", task);
         match task {
             BackendTask::Resource(t) => self.start_resource_task(t),
             BackendTask::Present(t) => self.start_present(t),
         }
+        Ok(())
     }
 
-    fn poll_tasks(&mut self) -> bool {
+    fn update(&mut self) -> Result<bool, GfxError> {
         log::trace!("Polling {} backend tasks.", self.running_tasks.len());
         let remove_indices: Vec<usize> = self
             .running_tasks
@@ -42,7 +44,7 @@ impl GfxBackend for DummyGfxBack {
         }
 
         log::trace!("Not finished tasks left : {}.", self.running_tasks.len());
-        !self.running_tasks.is_empty()
+        Ok(!self.running_tasks.is_empty())
     }
 }
 
@@ -104,7 +106,7 @@ struct StaticMeshManager {
 
 impl ResourceManager<StaticMeshId> for StaticMeshManager {
     fn add(&mut self, task: AddTask<StaticMeshId>, running: &mut Vec<Box<dyn RunningTask>>) {
-        let (data , mut result_setter) = task.into_inner();
+        let (data, mut result_setter) = task.into_inner();
         let id = new_id();
         self.storage.insert(id, data);
         let result = AddResult::Ok(id);

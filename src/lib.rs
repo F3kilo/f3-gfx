@@ -8,6 +8,7 @@ pub mod task_recv;
 use back::{BackendTask, GfxBackend};
 use generic_gfx::{GenericGfx, WorkingGenericGfx};
 use task_recv::ReceiveTask;
+use thiserror::Error;
 
 /// Gfx frontend task.
 #[derive(Debug)]
@@ -25,13 +26,14 @@ pub enum ServiceTask {
 /// Gfx frontend.
 pub trait Gfx: Send {
     /// Run enqueued tasks.
-    fn run_tasks(&mut self);
+    fn run_tasks(&mut self) -> Result<(), GfxError>;
 
     /// Test if gfx is still working.
     fn is_working(&self) -> bool;
 
     /// Update graphics. Some resources may be sent to consumers.
-    fn update(&mut self);
+    /// Returns `true` if some tasks are NOT finished.
+    fn update(&mut self) -> Result<bool, GfxError>;
 }
 
 /// Gfx frontend builder
@@ -52,3 +54,7 @@ impl<TaskReceiver: ReceiveTask> GfxBuilder<TaskReceiver> {
         GenericGfx::Working(gfx)
     }
 }
+
+#[derive(Debug, Error)]
+#[error("critical graphics error occured: {0}")]
+pub struct GfxError(String);
