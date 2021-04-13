@@ -57,4 +57,4 @@ impl<TaskReceiver: ReceiveTask> GfxBuilder<TaskReceiver> {
 
 #[derive(Debug, Error)]
 #[error("critical graphics error occured: {0}")]
-pub struct GfxError(String);
+pub struct GfxError(pub String);
