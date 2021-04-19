@@ -1,6 +1,6 @@
 [package]
 name = "f3_gfx"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["f3kilo <f3kilo@yandex.ru>"]
 edition = "2018"
 

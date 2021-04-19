@@ -2,14 +2,14 @@ use crate::common::dymmy_back::DummyGfxBack;
 use crate::common::task_recv::TaskReceiver;
 use f3_gfx::back::present::PresentInfo;
 use f3_gfx::back::resource::mesh::{StaticMeshData, StaticMeshId, StaticMeshVertex};
-use f3_gfx::back::resource::task::add::AddResult;
-use f3_gfx::handler::{GetError, Getter, GfxHandler, TaskSender};
+use f3_gfx::back::TaskResult;
+use f3_gfx::handler::{Getter, GfxHandler, TaskSender};
 use f3_gfx::res::GfxResource;
 use f3_gfx::scene::{ColorStaticMesh, InstanceData, Scene};
 use f3_gfx::Gfx;
 use f3_gfx::GfxBuilder;
 use log::LevelFilter;
-use std::sync::mpsc;
+use std::sync::{mpsc, Arc};
 
 mod common;
 
@@ -45,18 +45,12 @@ fn main() {
         instance: InstanceData::default(),
     });
 
-    let mut present_result = handler.present_scene(present_info, scene);
-    assert!(!present_result.try_get().is_ok());
+    handler.present_scene(present_info, Arc::new(scene));
     gfx.run_tasks().unwrap();
     gfx.update().unwrap();
-    assert!(present_result.try_get().is_ok());
-    assert!(matches!(
-        present_result.try_get(),
-        Err(GetError::AlreadyTaken)
-    ))
 }
 
-fn load_static_mesh(handler: &mut GfxHandler) -> Getter<AddResult<GfxResource<StaticMeshId>>> {
+fn load_static_mesh(handler: &mut GfxHandler) -> Getter<TaskResult<GfxResource<StaticMeshId>>> {
     handler.add_resource(static_mesh_data())
 }
 

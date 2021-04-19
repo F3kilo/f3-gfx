@@ -1,8 +1,6 @@
 use crate::back::resource::task::{DynResultSetter, ResId};
-use thiserror::Error;
 
-pub type ReadResult<Res> = Result<Res, ReadError>;
-pub type ReadResultSetter<Res> = DynResultSetter<ReadResult<Res>>;
+pub type ReadResultSetter<Res> = DynResultSetter<Res>;
 
 #[derive(Debug)]
 pub struct ReadTask<R: ResId> {
@@ -20,13 +18,4 @@ impl<R: ResId> ReadTask<R> {
     pub fn into_inner(self) -> (R, ReadResultSetter<R::Data>) {
         (self.id, self.result_setter)
     }
-}
-
-/// Error represent some problem in process of reading resource data from graphics backend.
-#[derive(Debug, Error, Copy, Clone)]
-pub enum ReadError {
-    #[error("resource is not found")]
-    NotFound,
-    #[error("can't read resource")]
-    CantRead,
 }

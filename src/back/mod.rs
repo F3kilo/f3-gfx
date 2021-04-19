@@ -5,6 +5,7 @@ use crate::back::present::PresentTask;
 use crate::back::resource::mesh::MeshResource;
 use std::fmt;
 use crate::GfxError;
+use thiserror::Error;
 
 /// Gfx backend task
 #[derive(Debug)]
@@ -31,5 +32,16 @@ pub trait GfxBackend: fmt::Debug + Send {
 
 /// Trait describe setter of some result
 pub trait ResultSetter<Result: Send + 'static>: fmt::Debug + Send {
-    fn set(&mut self, result: Result);
+    fn set(&mut self, result: TaskResult<Result>);
 }
+
+/// Error represents that task can't be complete.
+#[derive(Debug, Error, Clone)]
+pub enum TaskError {
+    #[error("graphics backend has not enough resources to complete task")]
+    NotEnoughResources,
+    #[error("unexpected graphics backend error")]
+    BackendError,
+}
+
+pub type TaskResult<R> = Result<R, TaskError>;
