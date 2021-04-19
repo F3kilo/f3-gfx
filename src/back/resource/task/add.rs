@@ -19,6 +19,11 @@ impl<R: ResId> AddTask<R> {
         }
     }
 
+    /// Returns task data reference.
+    pub fn data(&self) -> &R::Data {
+        &self.data
+    }
+
     /// Takes data source and result setter from `self`.
     pub fn into_inner(self) -> (R::Data, AddResultSetter<R>) {
         (self.data, self.result_setter)
