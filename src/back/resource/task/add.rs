@@ -1,8 +1,6 @@
 use crate::back::resource::task::{DynResultSetter, ResId};
-use thiserror::Error;
 
-pub type AddResult<R> = Result<R, AddError>;
-pub type AddResultSetter<R> = DynResultSetter<AddResult<R>>;
+pub type AddResultSetter<R> = DynResultSetter<R>;
 
 #[derive(Debug)]
 pub struct AddTask<R: ResId> {
@@ -19,15 +17,13 @@ impl<R: ResId> AddTask<R> {
         }
     }
 
+    /// Returns task data reference.
+    pub fn data(&self) -> &R::Data {
+        &self.data
+    }
+
     /// Takes data source and result setter from `self`.
     pub fn into_inner(self) -> (R::Data, AddResultSetter<R>) {
         (self.data, self.result_setter)
     }
-}
-
-/// Error represent some problem in process of adding resource to graphics backend.
-#[derive(Debug, Error, Copy, Clone)]
-pub enum AddError {
-    #[error("graphics backend has not enough space for resource")]
-    SpaceExhausted
 }

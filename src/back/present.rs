@@ -1,31 +1,28 @@
-use crate::back::ResultSetter;
 use crate::scene::{Scene, RawMat4};
+use std::sync::Arc;
 
 /// Task for presenting scene on screeen.
 #[derive(Debug)]
 pub struct PresentTask {
     present_info: PresentInfo,
-    scene: Scene,
-    result_setter: Box<dyn ResultSetter<Scene>>,
+    scene: Arc<Scene>,
 }
 
 impl PresentTask {
     /// Creates new present task.
     pub fn new(
         present_info: PresentInfo,
-        scene: Scene,
-        result_setter: Box<dyn ResultSetter<Scene>>,
+        scene: Arc<Scene>,
     ) -> Self {
         Self {
             present_info,
-            result_setter,
             scene,
         }
     }
 
     /// Splits present task to present info, scene and result sender.
-    pub fn into_inner(self) -> (PresentInfo, Scene, Box<dyn ResultSetter<Scene>>) {
-        (self.present_info, self.scene, self.result_setter)
+    pub fn into_inner(self) -> (PresentInfo, Arc<Scene>) {
+        (self.present_info, self.scene)
     }
 }
 

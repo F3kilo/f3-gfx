@@ -1,14 +1,15 @@
+use f3_gfx::back::present::PresentTask;
 use f3_gfx::back::resource::mesh::{MeshResource, StaticMeshData, StaticMeshId};
-use f3_gfx::back::resource::task::add::{AddResult, AddTask};
-use f3_gfx::back::resource::task::read::{ReadError, ReadTask};
+use f3_gfx::back::resource::task::add::{AddTask};
+use f3_gfx::back::resource::task::read::{ReadTask};
 use f3_gfx::back::resource::task::remove::RemoveTask;
 use f3_gfx::back::resource::task::{ResId, ResourceTask};
-use f3_gfx::back::{BackendTask, GfxBackend, ResourceType};
+use f3_gfx::back::{BackendTask, GfxBackend, ResourceType, TaskResult, TaskError};
 use std::collections::HashMap;
 use std::fmt;
 use std::fmt::{Debug, Formatter};
 use std::sync::atomic::{AtomicU64, Ordering};
-use f3_gfx::back::present::PresentTask;
+use f3_gfx::GfxError;
 
 static ID_COUNTER: AtomicU64 = AtomicU64::new(0);
 
@@ -19,15 +20,16 @@ pub struct DummyGfxBack {
 }
 
 impl GfxBackend for DummyGfxBack {
-    fn run_task(&mut self, task: BackendTask) {
+    fn run_task(&mut self, task: BackendTask) -> Result<(), GfxError> {
         log::trace!("Backend receives task: {:?}", task);
         match task {
             BackendTask::Resource(t) => self.start_resource_task(t),
             BackendTask::Present(t) => self.start_present(t),
         }
+        Ok(())
     }
 
-    fn poll_tasks(&mut self) -> bool {
+    fn update(&mut self) -> Result<bool, GfxError> {
         log::trace!("Polling {} backend tasks.", self.running_tasks.len());
         let remove_indices: Vec<usize> = self
             .running_tasks
@@ -42,7 +44,7 @@ impl GfxBackend for DummyGfxBack {
         }
 
         log::trace!("Not finished tasks left : {}.", self.running_tasks.len());
-        !self.running_tasks.is_empty()
+        Ok(!self.running_tasks.is_empty())
     }
 }
 
@@ -65,11 +67,9 @@ impl DummyGfxBack {
 
     fn start_present(&mut self, task: PresentTask) {
         log::trace!("Starting present task: {:?}", task);
-        let (_info, scene, mut setter) = task.into_inner();
-        let mut scene_opt = Some(scene);
+        let (_info, scene) = task.into_inner();
         let present = Box::new(RunTask(move || {
-            log::trace!("Presenting scene: {:?}", scene_opt);
-            setter.set(scene_opt.take().unwrap());
+            log::trace!("Presenting scene: {:?}", scene);
             true
         }));
 
@@ -104,13 +104,13 @@ struct StaticMeshManager {
 
 impl ResourceManager<StaticMeshId> for StaticMeshManager {
     fn add(&mut self, task: AddTask<StaticMeshId>, running: &mut Vec<Box<dyn RunningTask>>) {
-        let (data , mut result_setter) = task.into_inner();
+        let (data, mut result_setter) = task.into_inner();
         let id = new_id();
         self.storage.insert(id, data);
-        let result = AddResult::Ok(id);
+        let result = TaskResult::Ok(id);
         let set_result_task = Box::new(RunTask(move || {
             log::trace!("Setting add task result: {:?}", result);
-            result_setter.set(result);
+            result_setter.set(result.clone());
             true
         }));
 
@@ -130,7 +130,7 @@ impl ResourceManager<StaticMeshId> for StaticMeshManager {
         let data = self.storage.get(&id).map(Clone::clone);
         let result = match data {
             Some(d) => Ok(d),
-            None => Err(ReadError::NotFound),
+            None => Err(TaskError::BackendError),
         };
 
         let set_result_task = Box::new(RunTask(move || {
