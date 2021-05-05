@@ -1,15 +1,13 @@
 use crate::common::dymmy_back::DummyGfxBack;
-use crate::common::task_recv::TaskReceiver;
 use f3_gfx::back::present::PresentInfo;
 use f3_gfx::back::resource::mesh::{StaticMeshData, StaticMeshId, StaticMeshVertex};
-use f3_gfx::back::TaskResult;
-use f3_gfx::handler::{Getter, GfxHandler, TaskSender};
+use f3_gfx::handler::GfxHandler;
+use f3_gfx::res::set_get::Getter;
 use f3_gfx::res::GfxResource;
 use f3_gfx::scene::{ColorStaticMesh, InstanceData, Scene};
 use f3_gfx::Gfx;
-use f3_gfx::GfxBuilder;
 use log::LevelFilter;
-use std::sync::{mpsc, Arc};
+use std::sync::Arc;
 
 mod common;
 
@@ -18,20 +16,17 @@ fn main() {
         .filter_level(LevelFilter::max())
         .init();
 
-    let back = DummyGfxBack::default();
-    let (tx, rx) = mpsc::channel();
-    let task_receiver = TaskReceiver::new(rx);
-    let mut gfx = GfxBuilder::new(task_receiver, Box::new(back)).build();
-    let task_sender = TaskSender::new(tx);
-    let mut handler = GfxHandler::new(task_sender);
+    let back = Box::new(DummyGfxBack::default());
+    let mut gfx = Gfx::new(back);
+    let mut handler = gfx.create_handler();
     let mut mesh0 = load_static_mesh(&mut handler);
     let mut mesh1 = load_static_mesh(&mut handler);
-    assert!(mesh0.try_get().is_err());
-    assert!(mesh1.try_get().is_err());
-    gfx.run_tasks().unwrap();
+    assert!(mesh0.get().is_err());
+    assert!(mesh1.get().is_err());
+    gfx.run_tasks();
     gfx.update().unwrap();
-    let mesh0 = mesh0.try_get().unwrap().unwrap();
-    let mesh1 = mesh1.try_get().unwrap().unwrap();
+    let mesh0 = mesh0.get().unwrap();
+    let mesh1 = mesh1.get().unwrap();
 
     let present_info = PresentInfo::default();
     let mut scene = Scene::default();
@@ -46,11 +41,11 @@ fn main() {
     });
 
     handler.present_scene(present_info, Arc::new(scene));
-    gfx.run_tasks().unwrap();
+    gfx.run_tasks();
     gfx.update().unwrap();
 }
 
-fn load_static_mesh(handler: &mut GfxHandler) -> Getter<TaskResult<GfxResource<StaticMeshId>>> {
+fn load_static_mesh(handler: &mut GfxHandler) -> Getter<GfxResource<StaticMeshId>> {
     handler.add_resource(static_mesh_data())
 }
 

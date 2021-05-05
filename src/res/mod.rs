@@ -1,8 +1,10 @@
+pub mod set_get;
+
 use crate::back::resource::task::remove::RemoveTask;
 use crate::back::resource::task::ResId;
-use crate::handler::TaskSender;
+use crate::task_channel::SyncTaskSender;
 use crate::GfxTask;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 /// Clonable RAII graphics resource reference.
 #[derive(Debug, Clone)]
@@ -12,7 +14,7 @@ pub struct GfxResource<R: ResId> {
 
 impl<R: ResId> GfxResource<R> {
     /// Creates new graphics resource.
-    pub fn new(id: R, task_sender: TaskSender) -> Self {
+    pub fn new(id: R, task_sender: SyncTaskSender) -> Self {
         Self {
             inner: Arc::new(UniqueGfxResource::new(id, task_sender)),
         }
@@ -28,15 +30,12 @@ impl<R: ResId> GfxResource<R> {
 #[derive(Debug)]
 struct UniqueGfxResource<R: ResId> {
     id: R,
-    task_sender: Mutex<TaskSender>,
+    task_sender: SyncTaskSender,
 }
 
 impl<R: ResId> UniqueGfxResource<R> {
-    pub fn new(id: R, task_sender: TaskSender) -> Self {
-        Self {
-            id,
-            task_sender: Mutex::new(task_sender),
-        }
+    pub fn new(id: R, task_sender: SyncTaskSender) -> Self {
+        Self { id, task_sender }
     }
 
     pub fn id(&self) -> R {
@@ -48,8 +47,6 @@ impl<R: ResId> Drop for UniqueGfxResource<R> {
     fn drop(&mut self) {
         let remove_task = RemoveTask::new(self.id);
         self.task_sender
-            .get_mut()
-            .expect("Try to drop unique resource twice")
             .send(GfxTask::Backend(R::remove(remove_task)));
     }
 }

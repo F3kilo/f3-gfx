@@ -5,7 +5,7 @@ pub mod remove;
 use crate::back::resource::task::add::AddTask;
 use crate::back::resource::task::read::ReadTask;
 use crate::back::resource::task::remove::RemoveTask;
-use crate::back::{BackendTask, ResultSetter};
+use crate::back::{BackendTask};
 use std::fmt;
 
 #[derive(Debug)]
@@ -27,5 +27,3 @@ pub trait ResId: Send + Sync + fmt::Debug + Copy + Clone {
     fn remove(task: RemoveTask<Self>) -> BackendTask;
     fn read(task: ReadTask<Self>) -> BackendTask;
 }
-
-pub type DynResultSetter<R> = Box<dyn ResultSetter<R> + Send>;

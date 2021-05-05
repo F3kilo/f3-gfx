@@ -21,11 +21,6 @@ impl TasksChannel {
         TaskSender(self.tx.clone())
     }
 
-    /// Tasks sender for this channel. SyncTaskSender: Sync.
-    pub fn sync_sender(&self) -> SyncTaskSender {
-        SyncTaskSender(Mutex::new(self.sender()))
-    }
-
     pub fn pop(&self) -> Option<GfxTask> {
         self.rx.try_recv().ok()
     }
@@ -55,6 +50,12 @@ impl SyncTaskSender {
     /// Sends GfxTasks. Maybe faster, then non-mut version.
     pub fn send_mut(&mut self, task: GfxTask) {
         let _ = self.0.get_mut().unwrap().send(task); // No possibilities to panic inside lock.
+    }
+}
+
+impl From<TaskSender> for SyncTaskSender {
+    fn from(ts: TaskSender) -> Self {
+        Self(Mutex::new(ts))
     }
 }
 

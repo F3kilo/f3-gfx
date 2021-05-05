@@ -4,8 +4,10 @@ pub mod res;
 pub mod scene;
 mod task_channel;
 
-use back::{BackendTask, GfxBackend};
 use crate::task_channel::TasksChannel;
+use back::{BackendTask, GfxBackend};
+use crate::handler::GfxHandler;
+use crate::back::GfxBackendUpdateError;
 
 /// Gfx frontend task.
 #[derive(Debug)]
@@ -27,6 +29,18 @@ pub struct Gfx {
 }
 
 impl Gfx {
+    /// Creates new graphics frontend.
+    pub fn new(backend: Box<dyn GfxBackend>) -> Self {
+        Self {
+            backend,
+            tasks_channel: TasksChannel::default(),
+        }
+    }
+
+    pub fn create_handler(&self) -> GfxHandler {
+        GfxHandler::new(self.tasks_channel.sender())
+    }
+
     /// Run enqueued tasks.
     pub fn run_tasks(&mut self) {
         while let Some(task) = self.tasks_channel.pop() {
@@ -38,11 +52,12 @@ impl Gfx {
     }
 
     /// Update graphics. Some resources may be sent to consumers.
-    pub fn update(&mut self) {
-        self.backend.poll_tasks();
+    pub fn update(&mut self) -> Result<(), GfxBackendUpdateError> {
+        self.backend.update()?;
+        Ok(())
     }
 
-    fn run_service_task(&mut self, task: ServiceTask) {
+    fn run_service_task(&mut self, _task: ServiceTask) {
         todo!()
     }
 }
