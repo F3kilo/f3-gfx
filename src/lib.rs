@@ -1,19 +1,17 @@
 pub mod back;
-mod generic_gfx;
 pub mod handler;
 pub mod res;
 pub mod scene;
-pub mod task_recv;
+mod task_channel;
 
 use back::{BackendTask, GfxBackend};
-use generic_gfx::{GenericGfx, WorkingGenericGfx};
-use task_recv::ReceiveTask;
+use crate::task_channel::TasksChannel;
 
 /// Gfx frontend task.
 #[derive(Debug)]
 pub enum GfxTask {
     Backend(BackendTask),
-    Command(ServiceTask),
+    Service(ServiceTask),
 }
 
 /// Gfx command task.
@@ -23,32 +21,28 @@ pub enum ServiceTask {
 }
 
 /// Gfx frontend.
-pub trait Gfx: Send {
-    /// Run enqueued tasks.
-    fn run_tasks(&mut self);
-
-    /// Test if gfx is still working.
-    fn is_working(&self) -> bool;
-
-    /// Update graphics. Some resources may be sent to consumers.
-    fn update(&mut self);
-}
-
-/// Gfx frontend builder
-pub struct GfxBuilder<TaskReceiver: ReceiveTask> {
-    tasks: TaskReceiver,
+pub struct Gfx {
+    tasks_channel: TasksChannel,
     backend: Box<dyn GfxBackend>,
 }
 
-impl<TaskReceiver: ReceiveTask> GfxBuilder<TaskReceiver> {
-    /// Creates new GfxBuilder with specified task receiver and backend.
-    pub fn new(tasks: TaskReceiver, backend: Box<dyn GfxBackend>) -> Self {
-        Self { tasks, backend }
+impl Gfx {
+    /// Run enqueued tasks.
+    pub fn run_tasks(&mut self) {
+        while let Some(task) = self.tasks_channel.pop() {
+            match task {
+                GfxTask::Backend(t) => self.backend.run_task(t),
+                GfxTask::Service(t) => self.run_service_task(t),
+            }
+        }
     }
 
-    /// Builds frontend with specified parameters.
-    pub fn build(self) -> impl Gfx {
-        let gfx = WorkingGenericGfx::new(self.backend, self.tasks);
-        GenericGfx::Working(gfx)
+    /// Update graphics. Some resources may be sent to consumers.
+    pub fn update(&mut self) {
+        self.backend.poll_tasks();
+    }
+
+    fn run_service_task(&mut self, task: ServiceTask) {
+        todo!()
     }
 }
