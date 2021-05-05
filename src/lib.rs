@@ -8,6 +8,7 @@ use crate::task_channel::TasksChannel;
 use back::{BackendTask, GfxBackend};
 use crate::handler::GfxHandler;
 use crate::back::GfxBackendUpdateError;
+use slog::Logger;
 
 /// Gfx frontend task.
 #[derive(Debug)]
@@ -26,14 +27,22 @@ pub enum ServiceTask {
 pub struct Gfx {
     tasks_channel: TasksChannel,
     backend: Box<dyn GfxBackend>,
+    logger: Logger,
+}
+
+fn default_logger() -> Logger {
+    Logger::root(slog::Discard, slog::o!())
 }
 
 impl Gfx {
     /// Creates new graphics frontend.
-    pub fn new(backend: Box<dyn GfxBackend>) -> Self {
+    pub fn new(backend: Box<dyn GfxBackend>, logger: Option<Logger>) -> Self {
+        let logger = logger.unwrap_or_else(default_logger);
+        slog::trace!(logger, "Creatin new Gfx.");
         Self {
             backend,
             tasks_channel: TasksChannel::default(),
+            logger,
         }
     }
 
@@ -44,6 +53,7 @@ impl Gfx {
     /// Run enqueued tasks.
     pub fn run_tasks(&mut self) {
         while let Some(task) = self.tasks_channel.pop() {
+            slog::trace!(self.logger, "Running gfx task: {:?}.", task);
             match task {
                 GfxTask::Backend(t) => self.backend.run_task(t),
                 GfxTask::Service(t) => self.run_service_task(t),
@@ -53,6 +63,7 @@ impl Gfx {
 
     /// Update graphics. Some resources may be sent to consumers.
     pub fn update(&mut self) -> Result<(), GfxBackendUpdateError> {
+        slog::trace!(self.logger, "Updating Gfx.");
         self.backend.update()?;
         Ok(())
     }

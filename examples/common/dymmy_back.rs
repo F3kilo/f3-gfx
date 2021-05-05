@@ -1,10 +1,11 @@
 use f3_gfx::back::present::PresentTask;
 use f3_gfx::back::resource::mesh::{MeshResource, StaticMeshData, StaticMeshId};
-use f3_gfx::back::resource::task::add::{AddTask};
-use f3_gfx::back::resource::task::read::{ReadTask};
+use f3_gfx::back::resource::task::add::AddTask;
+use f3_gfx::back::resource::task::read::ReadTask;
 use f3_gfx::back::resource::task::remove::RemoveTask;
 use f3_gfx::back::resource::task::{ResId, ResourceTask};
-use f3_gfx::back::{BackendTask, GfxBackend, ResourceType, TaskError, GfxBackendUpdateError};
+use f3_gfx::back::{BackendTask, GfxBackend, GfxBackendUpdateError, ResourceType, TaskError};
+use slog::Logger;
 use std::collections::HashMap;
 use std::fmt;
 use std::fmt::{Debug, Formatter};
@@ -12,15 +13,16 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 static ID_COUNTER: AtomicU64 = AtomicU64::new(0);
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct DummyGfxBack {
     static_mesh_manager: StaticMeshManager,
     running_tasks: Vec<Box<dyn RunningTask>>,
+    logger: Logger,
 }
 
 impl GfxBackend for DummyGfxBack {
     fn run_task(&mut self, task: BackendTask) {
-        log::trace!("Backend receives task: {:?}", task);
+        slog::trace!(self.logger, "Backend receives task: {:?}", task);
         match task {
             BackendTask::Resource(t) => self.start_resource_task(t),
             BackendTask::Present(t) => self.start_present(t),
@@ -28,7 +30,11 @@ impl GfxBackend for DummyGfxBack {
     }
 
     fn update(&mut self) -> Result<bool, GfxBackendUpdateError> {
-        log::trace!("Polling {} backend tasks.", self.running_tasks.len());
+        slog::trace!(
+            self.logger,
+            "Polling {} backend tasks.",
+            self.running_tasks.len()
+        );
         let remove_indices: Vec<usize> = self
             .running_tasks
             .iter_mut()
@@ -41,21 +47,33 @@ impl GfxBackend for DummyGfxBack {
             self.running_tasks.swap_remove(i);
         }
 
-        log::trace!("Not finished tasks left : {}.", self.running_tasks.len());
+        slog::trace!(
+            self.logger,
+            "Not finished tasks left : {}.",
+            self.running_tasks.len()
+        );
         Ok(!self.running_tasks.is_empty())
     }
 }
 
 impl DummyGfxBack {
+    pub fn new(logger: Logger) -> Self {
+        Self {
+            static_mesh_manager: StaticMeshManager::new(logger.clone()),
+            running_tasks: Default::default(),
+            logger,
+        }
+    }
+
     fn start_resource_task(&mut self, task: ResourceType) {
-        log::trace!("Starting resource task: {:?}", task);
+        slog::trace!(self.logger, "Starting resource task: {:?}", task);
         match task {
             ResourceType::Mesh(t) => self.start_mesh_resource_task(t),
         }
     }
 
     fn start_mesh_resource_task(&mut self, task: MeshResource) {
-        log::trace!("Starting mesh resource task: {:?}", task);
+        slog::trace!(self.logger, "Starting mesh resource task: {:?}", task);
         match task {
             MeshResource::StaticMesh(t) => {
                 t.call(&mut self.static_mesh_manager, &mut self.running_tasks)
@@ -64,10 +82,11 @@ impl DummyGfxBack {
     }
 
     fn start_present(&mut self, task: PresentTask) {
-        log::trace!("Starting present task: {:?}", task);
+        slog::trace!(self.logger, "Starting present task: {:?}", task);
         let (_info, scene) = task.into_inner();
+        let logger = self.logger.clone();
         let present = Box::new(RunTask(move || {
-            log::trace!("Presenting scene: {:?}", scene);
+            slog::trace!(logger, "Presenting scene: {:?}", scene);
             true
         }));
 
@@ -95,9 +114,19 @@ trait ResourceManager<R: ResId> {
     fn read(&mut self, task: ReadTask<R>, running: &mut Vec<Box<dyn RunningTask>>);
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct StaticMeshManager {
     storage: HashMap<StaticMeshId, StaticMeshData>,
+    logger: Logger,
+}
+
+impl StaticMeshManager {
+    pub fn new(logger: Logger) -> Self {
+        Self {
+            logger,
+            storage: Default::default(),
+        }
+    }
 }
 
 impl ResourceManager<StaticMeshId> for StaticMeshManager {
@@ -106,24 +135,25 @@ impl ResourceManager<StaticMeshId> for StaticMeshManager {
         let id = new_id();
         self.storage.insert(id, data);
         let mut once_res_set = Some(result_setter);
+        let logger = self.logger.clone();
         let set_result_task = Box::new(RunTask(move || {
-            log::trace!("Setting add task result: {:?}", id);
+            slog::trace!(logger, "Setting add task result: {:?}", id);
             once_res_set.take().unwrap().set_resource(id);
             true
         }));
 
-        log::trace!("Push add task to running task.");
+        slog::trace!(self.logger, "Push add task to running task.");
         running.push(set_result_task);
     }
 
     fn remove(&mut self, task: RemoveTask<StaticMeshId>) {
-        log::trace!("Removing static mesh: {:?}", task);
+        slog::trace!(self.logger, "Removing static mesh: {:?}", task);
         let id = task.into_inner();
         self.storage.remove(&id);
     }
 
     fn read(&mut self, task: ReadTask<StaticMeshId>, running: &mut Vec<Box<dyn RunningTask>>) {
-        log::trace!("Reading static mesh: {:?}", task);
+        slog::trace!(self.logger, "Reading static mesh: {:?}", task);
         let (id, result_setter) = task.into_inner();
         let data = self.storage.get(&id).map(Clone::clone);
         let result = match data {
@@ -132,13 +162,15 @@ impl ResourceManager<StaticMeshId> for StaticMeshManager {
         };
 
         let mut once_res_set = Some(result_setter);
+        let logger = self.logger.clone();
+
         let set_result_task = Box::new(RunTask(move || {
-            log::trace!("Setting read result: {:?}", result);
+            slog::trace!(logger, "Setting read result: {:?}", result);
             once_res_set.take().unwrap().set(result.clone());
             true
         }));
 
-        log::trace!("Push read task to running task.");
+        slog::trace!(self.logger, "Push read task to running task.");
         running.push(set_result_task);
     }
 }

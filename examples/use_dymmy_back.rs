@@ -6,18 +6,21 @@ use f3_gfx::res::set_get::Getter;
 use f3_gfx::res::GfxResource;
 use f3_gfx::scene::{ColorStaticMesh, InstanceData, Scene};
 use f3_gfx::Gfx;
-use log::LevelFilter;
+use sloggers::Build;
 use std::sync::Arc;
+use sloggers::types::SourceLocation;
 
 mod common;
 
 fn main() {
-    env_logger::builder()
-        .filter_level(LevelFilter::max())
-        .init();
+    let logger = sloggers::terminal::TerminalLoggerBuilder::new()
+        .level(sloggers::types::Severity::Trace)
+        .source_location(SourceLocation::FileAndLine)
+        .build()
+        .unwrap();
 
-    let back = Box::new(DummyGfxBack::default());
-    let mut gfx = Gfx::new(back);
+    let back = Box::new(DummyGfxBack::new(logger.clone()));
+    let mut gfx = Gfx::new(back, Some(logger));
     let mut handler = gfx.create_handler();
     let mut mesh0 = load_static_mesh(&mut handler);
     let mut mesh1 = load_static_mesh(&mut handler);
