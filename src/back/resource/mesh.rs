@@ -4,7 +4,7 @@ use crate::back::resource::task::read::ReadTask;
 use crate::back::resource::task::remove::RemoveTask;
 use crate::back::resource::task::{ResId, ResourceTask};
 use crate::back::{BackendTask, ResourceType};
-use std::{mem, slice};
+use std::{fmt, mem, slice};
 
 /// Variants of mesh resource.
 #[derive(Debug)]
@@ -38,10 +38,21 @@ impl From<u64> for StaticMeshId {
 pub type MeshIndex = u32;
 
 /// Data of static mesh.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct StaticMeshData {
     pub indices: Vec<MeshIndex>,
     pub vertices: Vec<StaticMeshVertex>,
+}
+
+impl fmt::Debug for StaticMeshData {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "StaticMeshData with {} vertices and {} indices",
+            self.vertices.len(),
+            self.indices.len()
+        )
+    }
 }
 
 impl MeshData for StaticMeshData {
