@@ -26,7 +26,6 @@ fn main() {
     let mut mesh1 = load_static_mesh(&mut handler);
     assert!(mesh0.get().is_err());
     assert!(mesh1.get().is_err());
-    gfx.run_tasks();
     gfx.update().unwrap();
     let mesh0 = mesh0.get().unwrap();
     let mesh1 = mesh1.get().unwrap();
@@ -44,7 +43,6 @@ fn main() {
     });
 
     handler.present_scene(present_info, Arc::new(scene));
-    gfx.run_tasks();
     gfx.update().unwrap();
 }
 

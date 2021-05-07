@@ -50,8 +50,9 @@ impl Gfx {
         GfxHandler::new(self.tasks_channel.sender())
     }
 
-    /// Run enqueued tasks.
-    pub fn run_tasks(&mut self) {
+    /// Pushes enqueued tasks.
+    fn push_tasks(&mut self) {
+        slog::trace!(self.logger, "Pushing Gfx tasks.");
         while let Some(task) = self.tasks_channel.pop() {
             slog::trace!(self.logger, "Running gfx task: {:?}.", task);
             match task {
@@ -63,6 +64,8 @@ impl Gfx {
 
     /// Update graphics. Some resources may be sent to consumers.
     pub fn update(&mut self) -> Result<(), GfxBackendUpdateError> {
+        self.push_tasks();
+
         slog::trace!(self.logger, "Updating Gfx.");
         self.backend.update()?;
         Ok(())
