@@ -92,9 +92,9 @@ impl MeshData for StaticMeshData {
 #[repr(C)]
 #[derive(Debug, Copy, Clone, Default)]
 pub struct StaticMeshVertex {
-    position: [f32; 4],
-    normal: [f32; 4],
-    uv: [f32; 2],
+    pub position: [f32; 4],
+    pub normal: [f32; 4],
+    pub uv: [f32; 2],
 }
 
 impl ResId for StaticMeshId {
