@@ -42,7 +42,7 @@ impl GfxHandler {
     ) -> Getter<R::Data> {
         let sync_task_sender = self.task_sender.clone().into();
         let (setter, getter) = set_get::setter_getter(sync_task_sender);
-        let task = ReadTask::new(resource.id(), setter);
+        let task = ReadTask::new(resource, setter);
         self.task_sender.send(GfxTask::Backend(R::read(task)));
         getter
     }

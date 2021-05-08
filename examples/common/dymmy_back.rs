@@ -155,7 +155,7 @@ impl ResourceManager<StaticMeshId> for StaticMeshManager {
     fn read(&mut self, task: ReadTask<StaticMeshId>, running: &mut Vec<Box<dyn RunningTask>>) {
         slog::trace!(self.logger, "Reading static mesh: {:?}", task);
         let (id, result_setter) = task.into_inner();
-        let data = self.storage.get(&id).map(Clone::clone);
+        let data = self.storage.get(&id.id()).map(Clone::clone);
         let result = match data {
             Some(d) => Ok(d),
             None => Err(TaskError::BackendBroken),
