@@ -10,12 +10,15 @@ use std::collections::HashMap;
 use std::fmt;
 use std::fmt::{Debug, Formatter};
 use std::sync::atomic::{AtomicU64, Ordering};
+use f3_gfx::back::resource::window::{WindowId, WindowHandle};
+use std::sync::Arc;
 
 static ID_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug)]
 pub struct DummyGfxBack {
     static_mesh_manager: StaticMeshManager,
+    windows_manager: WindowsManager,
     running_tasks: Vec<Box<dyn RunningTask>>,
     logger: Logger,
 }
@@ -60,6 +63,7 @@ impl DummyGfxBack {
     pub fn new(logger: Logger) -> Self {
         Self {
             static_mesh_manager: StaticMeshManager::new(logger.clone()),
+            windows_manager: WindowsManager::new(logger.clone()),
             running_tasks: Default::default(),
             logger,
         }
@@ -69,6 +73,7 @@ impl DummyGfxBack {
         slog::trace!(self.logger, "Starting resource task: {:?}", task);
         match task {
             ResourceType::Mesh(t) => self.start_mesh_resource_task(t),
+            ResourceType::Window(t) => self.start_window_task(t),
         }
     }
 
@@ -78,6 +83,15 @@ impl DummyGfxBack {
             MeshResource::StaticMesh(t) => {
                 t.call(&mut self.static_mesh_manager, &mut self.running_tasks)
             }
+        }
+    }
+
+    fn start_window_task(&mut self, task: ResourceTask<WindowId>) {
+        slog::trace!(self.logger, "Starting window task: {:?}", task);
+        match task {
+            ResourceTask::Add(t) => self.windows_manager.add(t, &mut self.running_tasks),
+            ResourceTask::Remove(t) => self.windows_manager.remove(t),
+            ResourceTask::Read(t) => self.windows_manager.read(t, &mut self.running_tasks)
         }
     }
 
@@ -171,6 +185,67 @@ impl ResourceManager<StaticMeshId> for StaticMeshManager {
         }));
 
         slog::trace!(self.logger, "Push read task to running task.");
+        running.push(set_result_task);
+    }
+}
+
+#[derive(Debug)]
+struct WindowsManager {
+    storage: HashMap<WindowId, Arc<dyn WindowHandle>>,
+    logger: Logger,
+}
+
+impl WindowsManager {
+    pub fn new(logger: Logger) -> Self {
+        Self {
+            logger,
+            storage: Default::default(),
+        }
+    }
+}
+
+impl ResourceManager<WindowId> for WindowsManager {
+    fn add(&mut self, task: AddTask<WindowId>, running: &mut Vec<Box<dyn RunningTask>>) {
+        let (data, result_setter) = task.into_inner();
+        let id = new_id();
+        self.storage.insert(id, data);
+        let mut once_res_set = Some(result_setter);
+        let logger = self.logger.clone();
+        let set_result_task = Box::new(RunTask(move || {
+            slog::trace!(logger, "Setting add window task result: {:?}", id);
+            once_res_set.take().unwrap().set_resource(id);
+            true
+        }));
+
+        slog::trace!(self.logger, "Push add window task to running task.");
+        running.push(set_result_task);
+    }
+
+    fn remove(&mut self, task: RemoveTask<WindowId>) {
+        slog::trace!(self.logger, "Removing WINDOW: {:?}", task);
+        let id = task.into_inner();
+        self.storage.remove(&id);
+    }
+
+    fn read(&mut self, task: ReadTask<WindowId>, running: &mut Vec<Box<dyn RunningTask>>) {
+        slog::trace!(self.logger, "Reading window: {:?}", task);
+        let (id, result_setter) = task.into_inner();
+        let data = self.storage.get(&id.id()).map(Clone::clone);
+        let result = match data {
+            Some(d) => Ok(d),
+            None => Err(TaskError::BackendBroken),
+        };
+
+        let mut once_res_set = Some(result_setter);
+        let logger = self.logger.clone();
+
+        let set_result_task = Box::new(RunTask(move || {
+            slog::trace!(logger, "Setting read window result: {:?}", result);
+            once_res_set.take().unwrap().set(result.clone());
+            true
+        }));
+
+        slog::trace!(self.logger, "Push read window task to running task.");
         running.push(set_result_task);
     }
 }

@@ -9,6 +9,7 @@ use f3_gfx::Gfx;
 use sloggers::Build;
 use std::sync::Arc;
 use sloggers::types::SourceLocation;
+use f3_gfx::back::resource::window::{WindowHandle, WindowId};
 
 mod common;
 
@@ -19,16 +20,24 @@ fn main() {
         .build()
         .unwrap();
 
+
     let back = Box::new(DummyGfxBack::new(logger.clone()));
     let mut gfx = Gfx::new(back, Some(logger));
     let mut handler = gfx.create_handler();
+
+    let el = winit::event_loop::EventLoop::new();
+    let window = Arc::new(winit::window::Window::new(&el).unwrap());
+    let mut window_getter = create_window(&mut handler, window);
+
     let mut mesh0 = load_static_mesh(&mut handler);
     let mut mesh1 = load_static_mesh(&mut handler);
     assert!(mesh0.get().is_err());
     assert!(mesh1.get().is_err());
     gfx.update().unwrap();
+    let _window = window_getter.get().unwrap();
     let mesh0 = mesh0.get().unwrap();
     let mesh1 = mesh1.get().unwrap();
+
 
     let present_info = PresentInfo::default();
     let mut scene = Scene::default();
@@ -48,6 +57,10 @@ fn main() {
 
 fn load_static_mesh(handler: &mut GfxHandler) -> Getter<GfxResource<StaticMeshId>> {
     handler.add_resource(static_mesh_data())
+}
+
+fn create_window(handler: &mut GfxHandler, window: Arc<dyn WindowHandle>) -> Getter<GfxResource<WindowId>> {
+    handler.add_resource(window)
 }
 
 fn static_mesh_data() -> StaticMeshData {

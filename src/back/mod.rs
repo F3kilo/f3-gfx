@@ -5,6 +5,8 @@ use crate::back::present::PresentTask;
 use crate::back::resource::mesh::MeshResource;
 use std::fmt;
 use thiserror::Error;
+use crate::back::resource::task::ResourceTask;
+use crate::back::resource::window::WindowId;
 
 /// Gfx backend task
 #[derive(Debug)]
@@ -17,6 +19,7 @@ pub enum BackendTask {
 #[derive(Debug)]
 pub enum ResourceType {
     Mesh(MeshResource),
+    Window(ResourceTask<WindowId>),
 }
 
 #[derive(Debug, Error)]
