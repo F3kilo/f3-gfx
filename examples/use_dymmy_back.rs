@@ -10,6 +10,7 @@ use sloggers::Build;
 use std::sync::Arc;
 use sloggers::types::SourceLocation;
 use f3_gfx::back::resource::window::{WindowHandle, WindowId};
+use raw_window_handle::HasRawWindowHandle;
 
 mod common;
 
@@ -26,7 +27,8 @@ fn main() {
     let mut handler = gfx.create_handler();
 
     let el = winit::event_loop::EventLoop::new();
-    let window = Arc::new(winit::window::Window::new(&el).unwrap());
+    let winit_window = winit::window::Window::new(&el).unwrap();
+    let window = Arc::new(WinitWindowHandle(winit_window));
     let mut window_getter = create_window(&mut handler, window);
 
     let mut mesh0 = load_static_mesh(&mut handler);
@@ -53,6 +55,23 @@ fn main() {
 
     handler.present_scene(present_info, Arc::new(scene));
     gfx.update().unwrap();
+}
+
+#[derive(Debug)]
+pub struct WinitWindowHandle(winit::window::Window);
+
+impl WindowHandle for WinitWindowHandle {
+    fn raw_window_handle(&self) -> &dyn HasRawWindowHandle {
+        &self.0
+    }
+
+    fn width(&self) -> u32 {
+        self.0.inner_size().width
+    }
+
+    fn height(&self) -> u32 {
+        self.0.inner_size().height
+    }
 }
 
 fn load_static_mesh(handler: &mut GfxHandler) -> Getter<GfxResource<StaticMeshId>> {
