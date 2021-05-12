@@ -46,6 +46,12 @@ impl ResId for WindowId {
     }
 }
 
-pub trait WindowHandle: HasRawWindowHandle + Send + Sync + Debug {}
+pub trait WindowHandle: Send + Sync + Debug {
+    fn raw_window_handle(&self) -> &dyn HasRawWindowHandle;
+}
 
-impl<T> WindowHandle for T where T: HasRawWindowHandle + Send + Sync + Debug {}
+impl<T> WindowHandle for T where T: HasRawWindowHandle + Send + Sync + Debug {
+    fn raw_window_handle(&self) -> &dyn HasRawWindowHandle {
+        self
+    }
+}
