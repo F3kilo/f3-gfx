@@ -1,16 +1,16 @@
 use crate::common::dymmy_back::DummyGfxBack;
 use f3_gfx::back::present::PresentInfo;
 use f3_gfx::back::resource::mesh::{StaticMeshData, StaticMeshId, StaticMeshVertex};
+use f3_gfx::back::resource::window::{WindowHandle, WindowId};
 use f3_gfx::handler::GfxHandler;
 use f3_gfx::res::set_get::Getter;
 use f3_gfx::res::GfxResource;
 use f3_gfx::scene::{ColorStaticMesh, InstanceData, Scene};
 use f3_gfx::Gfx;
+use raw_window_handle::HasRawWindowHandle;
+use sloggers::types::SourceLocation;
 use sloggers::Build;
 use std::sync::Arc;
-use sloggers::types::SourceLocation;
-use f3_gfx::back::resource::window::{WindowHandle, WindowId};
-use raw_window_handle::HasRawWindowHandle;
 
 mod common;
 
@@ -20,7 +20,6 @@ fn main() {
         .source_location(SourceLocation::FileAndLine)
         .build()
         .unwrap();
-
 
     let back = Box::new(DummyGfxBack::new(logger.clone()));
     let mut gfx = Gfx::new(back, Some(logger));
@@ -36,12 +35,14 @@ fn main() {
     assert!(mesh0.get().is_err());
     assert!(mesh1.get().is_err());
     gfx.update().unwrap();
-    let _window = window_getter.get().unwrap();
+    let window = window_getter.get().unwrap();
     let mesh0 = mesh0.get().unwrap();
     let mesh1 = mesh1.get().unwrap();
 
-
-    let present_info = PresentInfo::default();
+    let present_info = PresentInfo {
+        render_info: Default::default(),
+        window,
+    };
     let mut scene = Scene::default();
     scene.color_static_mesh.push(ColorStaticMesh {
         mesh: mesh0,
@@ -78,7 +79,10 @@ fn load_static_mesh(handler: &mut GfxHandler) -> Getter<GfxResource<StaticMeshId
     handler.add_resource(static_mesh_data())
 }
 
-fn create_window(handler: &mut GfxHandler, window: Arc<dyn WindowHandle>) -> Getter<GfxResource<WindowId>> {
+fn create_window(
+    handler: &mut GfxHandler,
+    window: Arc<dyn WindowHandle>,
+) -> Getter<GfxResource<WindowId>> {
     handler.add_resource(window)
 }
 

@@ -1,5 +1,7 @@
 use crate::scene::{Scene, RawMat4};
 use std::sync::Arc;
+use crate::res::GfxResource;
+use crate::back::resource::window::WindowId;
 
 /// Task for presenting scene on screeen.
 #[derive(Debug)]
@@ -27,9 +29,16 @@ impl PresentTask {
 }
 
 /// Information for presenting.
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct PresentInfo {
-    camera: CameraInfo
+    pub render_info: RenderProps,
+    pub window: GfxResource<WindowId>,
+}
+
+/// Rendering properties.
+#[derive(Debug, Clone, Default)]
+pub struct RenderProps {
+    pub camera: CameraInfo
 }
 
 /// Information about camera.
